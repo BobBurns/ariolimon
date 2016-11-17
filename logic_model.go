@@ -132,7 +132,7 @@ func statQuery() (*EC2MetricsQuery, error) {
 	// must be set before calling cloudtap.Getstatistics
 	base = &MetricBaseParams{
 		DimName:   "InstanceId",
-		DimValue:  "i-029380affdd1af297",
+		DimValue:  "xxxxxxxxxxx",
 		Namespace: "AWS/EC2",
 	}
 	// give cloudtap pkg a list of metrics to query
