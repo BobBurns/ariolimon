@@ -14,14 +14,12 @@ import (
 )
 
 var t *template.Template
-var detailtemp *template.Template
 var thresh = make(map[string][]string)
 
 func init() {
 	// parse html template and threshold configuration file
 
-	t = template.Must(template.ParseFiles("html/templates/home2.html"))
-	detailtemp = template.Must(template.ParseFiles("html/templates/detail.html"))
+	t = template.Must(template.ParseFiles("html/templates/home2.html", "html/templates/detail.html"))
 
 	f, err := os.Open("thresholds.conf")
 	if err != nil {
@@ -57,7 +55,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var b bytes.Buffer
-	err = t.Execute(&b, q)
+	err = t.ExecuteTemplate(&b, "home2.html", q)
 	if err != nil {
 		fmt.Fprintf(w, "Error with template: %s ", err)
 		return
@@ -87,7 +85,7 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%q\n", err)
 	}
 	var b bytes.Buffer
-	err = detailtemp.Execute(&b, resp)
+	err = t.ExecuteTemplate(&b, "detail.html", resp)
 	if err != nil {
 		fmt.Fprintf(w, "Error with template: %s ", err)
 		return
