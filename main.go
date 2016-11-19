@@ -18,14 +18,18 @@ var thresh = make(map[string][]string)
 
 func init() {
 	// parse html template and threshold configuration file
+	funcMap := template.FuncMap{
+		"alertText": alertText,
+	}
 
-	t = template.Must(template.ParseFiles("html/templates/home2.html", "html/templates/detail.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html"))
 
 	f, err := os.Open("thresholds.conf")
 	if err != nil {
 		fmt.Printf("Could not open thresholds.conf: %s", err)
 		os.Exit(1)
 	}
+	// map metric names and thresholds
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		result := strings.Fields(scanner.Text())
@@ -51,7 +55,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	q, err := statQuery()
 	if err != nil {
 		fmt.Fprintf(w, "Error with statQuery: %s", err)
-		return
+		os.Exit(1)
 	}
 
 	var b bytes.Buffer
@@ -80,18 +84,41 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	err = graphMetric(resp)
+	value, err := graphMetric(resp)
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
+	currentMetric := Metric{
+		Label:      *resp.Label,
+		Units:      *resp.Datapoints[0].Unit,
+		Statistics: "Average",
+		Value:      value,
+	}
+
+	currentMetric.Alert = compareThresh(currentMetric)
+
 	var b bytes.Buffer
-	err = t.ExecuteTemplate(&b, "detail.html", resp)
+	err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
 	if err != nil {
 		fmt.Fprintf(w, "Error with template: %s ", err)
 		return
 	}
 	b.WriteTo(w)
 
+}
+
+// function to handle template output .Alert text
+func alertText(alert string) string {
+	switch alert {
+	case "danger":
+		return "Critical"
+	case "warning":
+		return "Warning"
+	case "success":
+		return "OK"
+	}
+
+	return "Unknown"
 }
 
 func main() {

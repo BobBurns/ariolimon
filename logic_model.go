@@ -132,7 +132,7 @@ func statQuery() (*EC2MetricsQuery, error) {
 	// must be set before calling cloudtap.Getstatistics
 	base = &MetricBaseParams{
 		DimName:   "InstanceId",
-		DimValue:  "xxxxxxxxxxxxx",
+		DimValue:  "xxxxxxxxxxxx",
 		Namespace: "AWS/EC2",
 	}
 	// give cloudtap pkg a list of metrics to query
@@ -146,6 +146,8 @@ func statQuery() (*EC2MetricsQuery, error) {
 	}
 	for i, _ := range resp.Items {
 		resp.Items[i].Alert = compareThresh(resp.Items[i])
+		//assign value in place
+		//compareThresh(resp.Items[i])
 	}
 	// return EC@MetricsQuery object pointer
 	return resp, nil
@@ -176,9 +178,11 @@ func compareThresh(q Metric) string {
 	}
 	if q.Value > maxcrit || q.Value < mincrit {
 		return "danger"
+
 	}
 	if q.Value > maxwarn || q.Value < minwarn {
 		return "warning"
+
 	}
 	return "success"
 }

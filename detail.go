@@ -26,7 +26,8 @@ func (a ByTime) Less(i, j int) bool {
 	return a[i].Time < a[j].Time
 }
 
-func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) error {
+// returns last value and plots a graph
+func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) {
 
 	var gv = []graphValues{}
 	for _, d := range metric.Datapoints {
@@ -46,7 +47,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) error {
 	}
 	p, err := plot.New()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	p.Title.Text = *metric.Label
 	p.X.Tick.Marker = xticks
@@ -55,7 +56,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) error {
 
 	line, points, err := plotter.NewLinePoints(pts)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	line.Color = color.RGBA{R: 17, G: 11, B: 192, A: 255}
 	points.Shape = draw.CircleGlyph{}
@@ -64,7 +65,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) error {
 	p.Add(line, points)
 	err = p.Save(20*vg.Centimeter, 10*vg.Centimeter, "html/currentgraph.png")
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return gv[len(gv)-1].Value, nil
 }
