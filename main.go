@@ -7,7 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -46,16 +48,22 @@ func init() {
 	}
 
 	svc = cloudwatch.New(sess)
+	svc_ec2 = ec2.New(sess)
 }
 
 // http handlers
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+	// check if there is a running instance
+	err := checkInstance()
+	if err != nil {
+		fmt.Fprintf(w, "No running instance: %v", err)
+		log.Fatalf("No running instance: %v", err)
+	}
 	// get aws metric data
 	q, err := statQuery()
 	if err != nil {
-		fmt.Fprintf(w, "Error with statQuery: %s", err)
-		os.Exit(1)
+		log.Fatalf("Error with statQuery: %s", err)
 	}
 
 	var b bytes.Buffer
@@ -69,7 +77,12 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 func detailHandler(w http.ResponseWriter, r *http.Request) {
 
-	if err := r.ParseForm(); err != nil {
+	err := checkInstance()
+	if err != nil {
+		fmt.Fprintf(w, "No running instance: %v", err)
+		log.Fatalf("No running instance: %v", err)
+	}
+	if err = r.ParseForm(); err != nil {
 		fmt.Fprintf(w, "Error with ParseForm\n")
 		return
 	}

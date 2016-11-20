@@ -1,16 +1,21 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
+const ID string = "xxxxxxxxxxxxx"
+
 var svc *cloudwatch.CloudWatch
+var svc_ec2 *ec2.EC2
 var base *MetricBaseParams
 
 type MetricBaseParams struct {
@@ -132,7 +137,7 @@ func statQuery() (*EC2MetricsQuery, error) {
 	// must be set before calling cloudtap.Getstatistics
 	base = &MetricBaseParams{
 		DimName:   "InstanceId",
-		DimValue:  "xxxxxxxxxxxx",
+		DimValue:  ID,
 		Namespace: "AWS/EC2",
 	}
 	// give cloudtap pkg a list of metrics to query
@@ -185,4 +190,30 @@ func compareThresh(q Metric) string {
 
 	}
 	return "success"
+}
+
+func checkInstance() error {
+	params := &ec2.DescribeInstancesInput{
+		DryRun: aws.Bool(false),
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("instance-id"),
+				Values: []*string{
+					aws.String(ID),
+				},
+			},
+		},
+	}
+	resp, err := svc_ec2.DescribeInstances(params)
+
+	if err != nil {
+		return err
+	}
+
+	code := *resp.Reservations[0].Instances[0].State.Code
+	if code != 16 {
+		es := fmt.Sprintf("Instance %s not running! Code: %d \n", ID, code)
+		return errors.New(es)
+	}
+	return nil
 }

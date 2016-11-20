@@ -22,6 +22,7 @@
 	    <h1>Service Detail -- apm-prod-1 -- {{ .Label }}</h1>
     </div>
     <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span> {{.Value}} {{.Units}} </h3>
+    <h3><a href="https://dco-prod-tools-1.ucsc.edu/confluence/display/DCUT/Escalations+-+AIS" target="_blank">On Call Escalation</a></h3>
     <div><img src="html/currentgraph.png" class="img-rounded" alt="{{ .Label }} graph"
 	    width="800" height="400">
     </div>
