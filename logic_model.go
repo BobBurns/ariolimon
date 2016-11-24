@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ID string = "i-029380affdd1af297"
+const ID string = "xxxxxxxxxxxxx"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
