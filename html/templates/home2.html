@@ -21,11 +21,23 @@
     <div class="page-header">
 	    <h1>AWS Stats! <small>{{ .Time }}</small></h1>
     </div>
-    {{range .Items}}
-    <div class="alert alert-{{ .Alert }}" role="alert">
+    <div class="container">
+      <div class="row">
+	  <div class="col-md-2">
+	    <h2>Hosts:</h2>
+	    <h4><a href="#">apm-prod-1</a></h4>
+	    <h4><a href="#">apm-prod-2</a></h4>
+	    <h4><a href="#">apm-prod-3</a></h4>
+    	 </div>
+	 <div class="col-md-10">
+         {{range .Items}}
+         <div class="alert alert-{{ .Alert }}" role="alert">
 	    apm-prod-1 <a href="detail?q={{ .Label }}" class="alert-link">{{ .Label }}</a>
 	    - {{ .Value }} {{ .Units }}</div>
-    {{ end }}
+         {{ end }}
+    	 </div>
+      </div>
+    </div>
 
     <!-- reload page every 2 min -->
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

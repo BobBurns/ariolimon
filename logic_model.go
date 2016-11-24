@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ID string = "xxxxxxxxxxxxx"
+const ID string = "i-029380affdd1af297"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
@@ -87,9 +87,9 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 
 		m := Metric{
 			Label:      *resp.Label,
-			Units:      *resp.Datapoints[0].Unit,
+			Units:      *resp.Datapoints[len(resp.Datapoints)-1].Unit,
 			Statistics: "Average",
-			Value:      *resp.Datapoints[0].Average,
+			Value:      *resp.Datapoints[len(resp.Datapoints)-1].Average,
 		}
 		mq.Items = append(mq.Items, m)
 	}
@@ -109,7 +109,7 @@ func getMetricDetail(name, timeframe string) (*cloudwatch.GetMetricStatisticsOut
 		period = 3600 // 1 hr
 	default:
 		duration, _ = time.ParseDuration("-4h")
-		period = 300 // 5min
+		period = 900 // 5min
 	}
 	t := time.Now()
 	s := t.Add(duration)

@@ -49,6 +49,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) 
 	if err != nil {
 		return 0, err
 	}
+	//	values = pts
 	p.Title.Text = *metric.Label
 	p.X.Tick.Marker = xticks
 	p.Y.Label.Text = "Average " + *metric.Datapoints[0].Unit
@@ -58,6 +59,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) 
 	if err != nil {
 		return 0, err
 	}
+
 	line.Color = color.RGBA{R: 17, G: 11, B: 192, A: 255}
 	points.Shape = draw.CircleGlyph{}
 	points.Color = color.RGBA{A: 255}
