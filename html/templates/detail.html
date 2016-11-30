@@ -19,15 +19,25 @@
   </head>
   <body>
     <div class="page-header">
-	    <h1>Service Detail -- apm-prod-1 -- {{ .Label }}</h1>
+	    <h2>Service Detail - apm-prod-1 - {{ .Label }}</h2>
     </div>
-    <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span> {{.Value}} {{.Units}} </h3>
-    <h3><a href="https://dco-prod-tools-1.ucsc.edu/confluence/display/DCUT/Escalations+-+AIS" target="_blank">On Call Escalation</a></h3>
-    <br>
-    <br>
-    <div><img src="html/currentgraph.png" class="img-rounded" alt="{{ .Label }} graph"
-	    width="800" height="400">
+    <div class="container">
+      <div class="row">
+	<div class="col-md-1">
+        <a href="/" class="btn btn-default btn-md" aria-label="back">
+	    <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+        </a>
+	</div>
+      <div class="col-md-11">
+        <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span> {{.Value}} {{.Units}} </h3>
+      <h3><a href="https://dco-prod-tools-1.ucsc.edu/confluence/display/DCUT/Escalations+-+AIS" target="_blank">On Call Escalation</a></h3>
+      <br>
+      <br>
+      <div><img src="html/currentgraph.png" class="img-fluid" alt="{{ .Label }} graph">
+        </div>
+      </div>
     </div>
+
     <!-- reload page every 2 min -->
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

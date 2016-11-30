@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ID string = "xxxxxxxxxxxxx"
+const ID string = "xxxxxxxxxxxxxx"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
@@ -52,6 +52,30 @@ func (a ByLabel) Less(i, j int) bool {
 	return a[i].Label < a[j].Label
 }
 
+// function to convert metric values byte to kilobytes
+func convertMetric(unit string, value float64) (string, float64) {
+	if unit == "Count" {
+		if value > 1000.0 {
+			value = value / 1000.0
+			unit = "K Count"
+			fmt.Println("> 1000")
+		}
+	} else if unit == "Bytes" {
+		if value > 1048576.0 {
+			value = value / 1048576.0
+			unit = "Megabytes"
+			fmt.Println("> 1048576")
+		}
+		if value > 1024.0 {
+			value = value / 1024.0
+			unit = "Kilobytes"
+			fmt.Println("> 1024")
+		}
+	}
+	fmt.Printf("unit: %s, value %f", unit, value)
+	return unit, value
+}
+
 func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 
 	mq := EC2MetricsQuery{
@@ -68,7 +92,7 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 		//		MetricName: aws.String(metric),
 		StartTime: aws.Time(s),
 		Statistics: []*string{
-			aws.String("Average"),
+			aws.String("Maximum"),
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{
@@ -84,12 +108,15 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Metric query failed: %s", err.Error())
 		}
+		unit := *resp.Datapoints[len(resp.Datapoints)-1].Unit
+		value := *resp.Datapoints[len(resp.Datapoints)-1].Maximum
+		unit, value = convertMetric(unit, value)
 
 		m := Metric{
 			Label:      *resp.Label,
-			Units:      *resp.Datapoints[len(resp.Datapoints)-1].Unit,
-			Statistics: "Average",
-			Value:      *resp.Datapoints[len(resp.Datapoints)-1].Average,
+			Units:      unit,
+			Statistics: "Maximum",
+			Value:      value,
 		}
 		mq.Items = append(mq.Items, m)
 	}
@@ -120,7 +147,7 @@ func getMetricDetail(name, timeframe string) (*cloudwatch.GetMetricStatisticsOut
 		MetricName: aws.String(name),
 		StartTime:  aws.Time(s),
 		Statistics: []*string{
-			aws.String("Average"),
+			aws.String("Maximum"),
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{

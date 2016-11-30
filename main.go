@@ -97,13 +97,13 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	value, err := graphMetric(resp)
+	value, unit, err := graphMetric(resp)
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
 	currentMetric := Metric{
 		Label:      *resp.Label,
-		Units:      *resp.Datapoints[0].Unit,
+		Units:      unit,
 		Statistics: "Average",
 		Value:      value,
 	}

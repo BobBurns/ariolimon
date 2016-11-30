@@ -13,6 +13,7 @@ import (
 type graphValues struct {
 	Time  float64
 	Value float64
+	Unit  string
 }
 type ByTime []graphValues
 
@@ -27,14 +28,16 @@ func (a ByTime) Less(i, j int) bool {
 }
 
 // returns last value and plots a graph
-func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) {
+func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, string, error) {
 
 	var gv = []graphValues{}
 	for _, d := range metric.Datapoints {
 		timeconv := *d.Timestamp
+		unit, value := convertMetric(*d.Unit, *d.Maximum)
 		values := graphValues{
 			Time:  float64(timeconv.Unix()),
-			Value: *d.Average,
+			Value: value,
+			Unit:  unit,
 		}
 		gv = append(gv, values)
 	}
@@ -47,17 +50,17 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) 
 	}
 	p, err := plot.New()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	//	values = pts
 	p.Title.Text = *metric.Label
 	p.X.Tick.Marker = xticks
-	p.Y.Label.Text = "Average " + *metric.Datapoints[0].Unit
+	p.Y.Label.Text = "Max " + gv[0].Unit
 	p.Add(plotter.NewGrid())
 
 	line, points, err := plotter.NewLinePoints(pts)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	line.Color = color.RGBA{R: 17, G: 11, B: 192, A: 255}
@@ -67,7 +70,7 @@ func graphMetric(metric *cloudwatch.GetMetricStatisticsOutput) (float64, error) 
 	p.Add(line, points)
 	err = p.Save(20*vg.Centimeter, 10*vg.Centimeter, "html/currentgraph.png")
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
-	return gv[len(gv)-1].Value, nil
+	return gv[len(gv)-1].Value, gv[len(gv)-1].Unit, nil
 }
