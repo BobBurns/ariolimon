@@ -97,17 +97,10 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	value, unit, err := graphMetric(resp)
+	currentMetric, err := graphMetric(resp)
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	currentMetric := Metric{
-		Label:      *resp.Label,
-		Units:      unit,
-		Statistics: "Average",
-		Value:      value,
-	}
-
 	currentMetric.Alert = compareThresh(currentMetric)
 
 	var b bytes.Buffer

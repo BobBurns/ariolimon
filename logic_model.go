@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ID string = "xxxxxxxxxxxxxx"
+const ID string = "xxxxxxxxxxxxxxx"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
@@ -36,9 +36,22 @@ type Metric struct {
 	Statistics string
 	Alert      string
 	Value      float64
+	Time       float64
 }
 
+// sort functions
 type ByLabel []Metric
+type ByTime []Metric
+
+func (a ByTime) Len() int {
+	return len(a)
+}
+func (a ByTime) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+func (a ByTime) Less(i, j int) bool {
+	return a[i].Time < a[j].Time
+}
 
 func (a ByLabel) Len() int {
 	return len(a)
@@ -50,30 +63,6 @@ func (a ByLabel) Swap(i, j int) {
 
 func (a ByLabel) Less(i, j int) bool {
 	return a[i].Label < a[j].Label
-}
-
-// function to convert metric values byte to kilobytes
-func convertMetric(unit string, value float64) (string, float64) {
-	if unit == "Count" {
-		if value > 1000.0 {
-			value = value / 1000.0
-			unit = "K Count"
-			fmt.Println("> 1000")
-		}
-	} else if unit == "Bytes" {
-		if value > 1048576.0 {
-			value = value / 1048576.0
-			unit = "Megabytes"
-			fmt.Println("> 1048576")
-		}
-		if value > 1024.0 {
-			value = value / 1024.0
-			unit = "Kilobytes"
-			fmt.Println("> 1024")
-		}
-	}
-	fmt.Printf("unit: %s, value %f", unit, value)
-	return unit, value
 }
 
 func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
@@ -110,7 +99,15 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 		}
 		unit := *resp.Datapoints[len(resp.Datapoints)-1].Unit
 		value := *resp.Datapoints[len(resp.Datapoints)-1].Maximum
-		unit, value = convertMetric(unit, value)
+		if unit == "Bytes" {
+			if value > 1048576 {
+				value = value / 104857
+				unit = "MB"
+			} else if value > 1028 {
+				value = value / 1028
+				unit = "KB"
+			}
+		}
 
 		m := Metric{
 			Label:      *resp.Label,
@@ -125,7 +122,7 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 	return &mq, nil
 }
 
-func getMetricDetail(name, timeframe string) (*cloudwatch.GetMetricStatisticsOutput, error) {
+func getMetricDetail(name, timeframe string) ([]Metric, error) {
 
 	var duration time.Duration
 	var period int64
@@ -156,7 +153,44 @@ func getMetricDetail(name, timeframe string) (*cloudwatch.GetMetricStatisticsOut
 			},
 		},
 	}
-	return svc.GetMetricStatistics(&params)
+	resp, err := svc.GetMetricStatistics(&params)
+	if err != nil {
+		return nil, err
+	}
+
+	var metrics []Metric
+	var trans float64 = 1.0
+	var tlabel string = ""
+	for _, data := range resp.Datapoints {
+		// check max values
+		if *data.Unit == "Bytes" {
+			if *data.Maximum > 1048576.0 {
+				trans = 1048576.0
+				tlabel = "MB"
+			} else if *data.Maximum > 1028.0 {
+				trans = 1028.0
+				tlabel = "KB"
+			}
+		}
+		m := Metric{
+			Label:      *resp.Label,
+			Units:      *data.Unit,
+			Statistics: "Maximum",
+			Value:      *data.Maximum,
+			Time:       float64(data.Timestamp.Unix()),
+		}
+		metrics = append(metrics, m)
+	}
+	sort.Sort(ByTime(metrics))
+	// iterate through metrics and transform for graph
+	if trans > 1 {
+		for i, _ := range metrics {
+			metrics[i].Value = metrics[i].Value / trans
+			metrics[i].Units = tlabel
+		}
+	}
+
+	return metrics, nil
 
 }
 
@@ -188,6 +222,14 @@ func statQuery() (*EC2MetricsQuery, error) {
 // function to compare threshold with query values and return html ready warning
 
 func compareThresh(q Metric) string {
+	// adjust for transform
+	if q.Units == "MB" {
+		q.Value = q.Value * 1048576.0
+	}
+	if q.Units == "KB" {
+		q.Value = q.Value * 1024.0
+	}
+
 	var minwarn float64 = 0.0
 	var maxwarn float64 = 100.0
 	var mincrit float64 = 0.0
