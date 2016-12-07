@@ -26,8 +26,8 @@ means warn if CPUUtilization is higher than 5 and warn critical when higher than
 
 In logic_model.go replace xxx in ```const ID string = "xxxxxxxxxxxxxxxxxx"``` with your instance id.
 
-Run ```go build ariolimon``` and execute ```../ariloimon```
+Run ```go build ariolimon``` and execute ```./ariolimon```
 
-open a web browser and navigate to localhost:8082.
+Open a web browser and navigate to localhost:8082
 
 Feel free to contact me for troubleshooting reburns@protonmail.com
