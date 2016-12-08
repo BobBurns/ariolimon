@@ -61,13 +61,22 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("No running instance: %v", err)
 	}
 	// get aws metric data
-	q, err := statQuery()
+	mq := EC2MetricsQuery{
+		DimName:   "InstanceId",
+		DimValue:  ID,
+		Namespace: "AWS/EC2",
+	}
+	// give cloudtap pkg a list of metrics to query
+	for m, _ := range thresh {
+		mq.QNames = append(mq.QNames, m)
+	}
+	err = mq.getStatistics()
 	if err != nil {
-		log.Fatalf("Error with statQuery: %s", err)
+		log.Fatalf("Error with getStatistics: %s", err)
 	}
 
 	var b bytes.Buffer
-	err = t.ExecuteTemplate(&b, "home2.html", q)
+	err = t.ExecuteTemplate(&b, "home2.html", mq)
 	if err != nil {
 		fmt.Fprintf(w, "Error with template: %s ", err)
 		return
@@ -88,16 +97,21 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// sanity check
 	q := r.FormValue("q")
-	if q == "" || base == nil {
+	if q == "" {
 		http.Redirect(w, r, "/", http.StatusFound)
 		//		fmt.Fprintf(w, "Malformed query!\n")
 		return
 	}
-	resp, err := getMetricDetail(q, "4 hours")
+	mqd := EC2MetricsQuery{
+		DimName:   "InstanceId",
+		DimValue:  ID,
+		Namespace: "AWS/EC2",
+	}
+	err = mqd.getMetricDetail(q, "4 hours")
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	currentMetric, err := graphMetric(resp)
+	currentMetric, err := graphMetric(mqd.Items)
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}

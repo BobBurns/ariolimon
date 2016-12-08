@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ID string = "xxxxxxxxxxxxxxxxxx"
+const ID string = "xxxxxxxx"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
@@ -25,9 +25,12 @@ type MetricBaseParams struct {
 }
 
 type EC2MetricsQuery struct {
-	TotalCount int
-	Time       string
-	Items      []Metric
+	DimName   string
+	DimValue  string
+	Namespace string
+	QNames    []string
+	Time      string
+	Items     []Metric
 }
 
 type Metric struct {
@@ -65,18 +68,15 @@ func (a ByLabel) Less(i, j int) bool {
 	return a[i].Label < a[j].Label
 }
 
-func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
+func (mq *EC2MetricsQuery) getStatistics() error {
 
-	mq := EC2MetricsQuery{
-		TotalCount: len(metrics),
-		Time:       time.Now().Format(time.RFC822),
-	}
+	mq.Time = time.Now().Format(time.RFC822)
 	t := time.Now()
 	duration, _ := time.ParseDuration("-10m")
 	s := t.Add(duration)
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:   aws.Time(t),
-		Namespace: aws.String(base.Namespace),
+		Namespace: aws.String(mq.Namespace),
 		Period:    aws.Int64(300),
 		//		MetricName: aws.String(metric),
 		StartTime: aws.Time(s),
@@ -85,17 +85,17 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{
-				Name:  aws.String(base.DimName),
-				Value: aws.String(base.DimValue),
+				Name:  aws.String(mq.DimName),
+				Value: aws.String(mq.DimValue),
 			},
 		},
 	}
-	for _, metric := range metrics {
+	for _, metric := range mq.QNames {
 		//		npar.SetMetricName(metric)
 		params.MetricName = aws.String(metric)
 		resp, err := svc.GetMetricStatistics(&params)
 		if err != nil {
-			return nil, fmt.Errorf("Metric query failed: %s", err.Error())
+			return fmt.Errorf("Metric query failed: %s", err.Error())
 		}
 		unit := *resp.Datapoints[len(resp.Datapoints)-1].Unit
 		value := *resp.Datapoints[len(resp.Datapoints)-1].Maximum
@@ -119,10 +119,15 @@ func getStatistics(metrics []string) (*EC2MetricsQuery, error) {
 	}
 	sort.Sort(ByLabel(mq.Items))
 
-	return &mq, nil
+	for i, _ := range mq.Items {
+		mq.Items[i].Alert = compareThresh(mq.Items[i])
+		//assign value in place
+		//compareThresh(resp.Items[i])
+	}
+	return nil
 }
 
-func getMetricDetail(name, timeframe string) ([]Metric, error) {
+func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 
 	var duration time.Duration
 	var period int64
@@ -139,7 +144,7 @@ func getMetricDetail(name, timeframe string) ([]Metric, error) {
 	s := t.Add(duration)
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:    aws.Time(t),
-		Namespace:  aws.String(base.Namespace),
+		Namespace:  aws.String(mq.Namespace),
 		Period:     aws.Int64(period),
 		MetricName: aws.String(name),
 		StartTime:  aws.Time(s),
@@ -148,17 +153,16 @@ func getMetricDetail(name, timeframe string) ([]Metric, error) {
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{
-				Name:  aws.String(base.DimName),
-				Value: aws.String(base.DimValue),
+				Name:  aws.String(mq.DimName),
+				Value: aws.String(mq.DimValue),
 			},
 		},
 	}
 	resp, err := svc.GetMetricStatistics(&params)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var metrics []Metric
 	var trans float64 = 1.0
 	var tlabel string = ""
 	for _, data := range resp.Datapoints {
@@ -179,44 +183,19 @@ func getMetricDetail(name, timeframe string) ([]Metric, error) {
 			Value:      *data.Maximum,
 			Time:       float64(data.Timestamp.Unix()),
 		}
-		metrics = append(metrics, m)
+		mq.Items = append(mq.Items, m)
 	}
-	sort.Sort(ByTime(metrics))
+	sort.Sort(ByTime(mq.Items))
 	// iterate through metrics and transform for graph
 	if trans > 1 {
-		for i, _ := range metrics {
-			metrics[i].Value = metrics[i].Value / trans
-			metrics[i].Units = tlabel
+		for i, _ := range mq.Items {
+			mq.Items[i].Value = mq.Items[i].Value / trans
+			mq.Items[i].Units = tlabel
 		}
 	}
 
-	return metrics, nil
+	return nil
 
-}
-
-func statQuery() (*EC2MetricsQuery, error) {
-	// must be set before calling cloudtap.Getstatistics
-	base = &MetricBaseParams{
-		DimName:   "InstanceId",
-		DimValue:  ID,
-		Namespace: "AWS/EC2",
-	}
-	// give cloudtap pkg a list of metrics to query
-	var metricLabel []string
-	for m, _ := range thresh {
-		metricLabel = append(metricLabel, m)
-	}
-	resp, err := getStatistics(metricLabel)
-	if err != nil {
-		return nil, fmt.Errorf("getStatistics failed: %s", err)
-	}
-	for i, _ := range resp.Items {
-		resp.Items[i].Alert = compareThresh(resp.Items[i])
-		//assign value in place
-		//compareThresh(resp.Items[i])
-	}
-	// return EC@MetricsQuery object pointer
-	return resp, nil
 }
 
 // function to compare threshold with query values and return html ready warning
