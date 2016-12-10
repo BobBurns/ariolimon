@@ -12,17 +12,10 @@ import (
 	"time"
 )
 
-const ID string = "xxxxxxxx"
+const ID string = "i-029380affdd1af297"
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
-var base *MetricBaseParams
-
-type MetricBaseParams struct {
-	DimName   string
-	DimValue  string
-	Namespace string
-}
 
 type EC2MetricsQuery struct {
 	DimName   string
