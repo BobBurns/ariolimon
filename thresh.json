@@ -4,18 +4,47 @@
  "dimensions": [
 	{"dim_name": "BucketName",
 	 "dim_value": "s3-3423444"}
- ]
+ ],
  "metrics": [
 	{"metric": "BucketSizeBytes",
-	 "units": "Bytes",
 	 "statistics": "Average",
 	 "warning": "0:10",
 	 "critical": "0:50"},
 	{"metric": "AllRequests",
-	 "units": "Count",
-	 "statistics": "Sum"},
+	 "statistics": "Sum",
+	 "warning": "0:100",
+	 "critical": "0:100"}
+]},
+{"hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metrics": [
+	{"metric": "CPUUtilization",
+	 "statistics": "Maximum",
+	 "warning": "0:5",
+	 "critical": "0:50"},
+	{"metric": "NetworkIn",
+	 "statistics": "Sum",
+	 "warning": "0:100",
+	 "critical": "0:100"}
+]},
+{"hostname": "apm-prod-2",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-different"}
+ ],
+ "metrics": [
+	{"metric": "CPUUtilization",
+	 "statistics": "Maximum",
+	 "warning": "0:5",
+	 "critical": "0:50"},
+	{"metric": "NetworkIn",
+	 "statistics": "Sum",
 	 "warning": "0:100",
 	 "critical": "0:100"}
 ]}
-{"hostname": "apm-prod-1",
- "namespace": "AWS/EC2"
+]

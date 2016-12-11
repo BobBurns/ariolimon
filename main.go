@@ -3,12 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -52,6 +54,25 @@ func init() {
 }
 
 // http handlers
+func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		hostname := r.URL.Path[len("/device/"):]
+		hostquerry := hosts[hostname]
+		fmt.Println(hosts)
+		err := hostquerry.getStatistics()
+		if err != nil {
+			log.Fatalf("Error with getStatistics: %s", err)
+		}
+		var b bytes.Buffer
+		err = t.ExecuteTemplate(&b, "home2.html", hostquerry)
+		if err != nil {
+			fmt.Fprintf(w, "Error with template: %s ", err)
+			return
+		}
+		b.WriteTo(w)
+
+	}
+}
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	// check if there is a running instance
@@ -61,9 +82,14 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("No running instance: %v", err)
 	}
 	// get aws metric data
+	var dimar []Dimension
+	dimar[0] = Dimension{
+		DimName:  "InstanceId",
+		DimValue: ID,
+	}
+
 	mq := EC2MetricsQuery{
-		DimName:   "InstanceId",
-		DimValue:  ID,
+		Dims:      dimar,
 		Namespace: "AWS/EC2",
 	}
 	// give cloudtap pkg a list of metrics to query
@@ -102,9 +128,13 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 		//		fmt.Fprintf(w, "Malformed query!\n")
 		return
 	}
+	var dimar []Dimension
+	dimar[0] = Dimension{
+		DimName:  "InstanceId",
+		DimValue: ID,
+	}
 	mqd := EC2MetricsQuery{
-		DimName:   "InstanceId",
-		DimValue:  ID,
+		Dims:      dimar,
 		Namespace: "AWS/EC2",
 	}
 	err = mqd.getMetricDetail(q, "4 hours")
@@ -115,7 +145,7 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
-	currentMetric.Alert = compareThresh(currentMetric)
+	currentMetric.compareThresh()
 
 	var b bytes.Buffer
 	err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
@@ -142,9 +172,25 @@ func alertText(alert string) string {
 }
 
 func main() {
+	var hosts []EC2MetricsQuery
+	data, err := ioutil.ReadFile("thresh.json")
+	if err != nil {
+		log.Fatalf("readfile: %v", err)
+	}
+	err = json.Unmarshal([]byte(data), &hosts)
+	if err != nil {
+		log.Fatalf("unmarshal: %v", err)
+	}
+	fmt.Println(hosts)
+	// make a map of hostnames to EC2MetricsQuery
+	var hostmap = make(map[string]EC2MetricsQuery)
+	for _, query := range hosts {
+		hostmap[query.Host] = query
+	}
 	// TODO: handle file directory html/random
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/device/", devHandler(hostmap))
 	http.HandleFunc("/detail", detailHandler)
 	http.ListenAndServe(":8082", nil)
 }

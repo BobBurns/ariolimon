@@ -18,18 +18,24 @@ var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
 
 type EC2MetricsQuery struct {
-	DimName   string
-	DimValue  string
-	Namespace string
+	Host      string      `json:"hostname"`
+	Namespace string      `json:"namespace"`
+	Dims      []Dimension `json:"dimensions"`
 	QNames    []string
 	Time      string
-	Items     []Metric
+	Items     []Metric `json:"metrics"`
+}
+type Dimension struct {
+	DimName  string `json:"dim_name"`
+	DimValue string `json:"dim_value"`
 }
 
 type Metric struct {
-	Label      string
+	Label      string `json:"metric"`
 	Units      string
-	Statistics string
+	Statistics string `json:"statistics"`
+	Warning    string `json:"warning"`
+	Critical   string `json:"critical"`
 	Alert      string
 	Value      float64
 	Time       float64
@@ -67,6 +73,13 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 	t := time.Now()
 	duration, _ := time.ParseDuration("-10m")
 	s := t.Add(duration)
+	var dims []*cloudwatch.Dimension
+	for i, dim := range mq.Dims {
+		dims[i] = &cloudwatch.Dimension{
+			Name:  aws.String(dim.DimName),
+			Value: aws.String(dim.DimValue),
+		}
+	}
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:   aws.Time(t),
 		Namespace: aws.String(mq.Namespace),
@@ -76,16 +89,11 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 		Statistics: []*string{
 			aws.String("Maximum"),
 		},
-		Dimensions: []*cloudwatch.Dimension{
-			{
-				Name:  aws.String(mq.DimName),
-				Value: aws.String(mq.DimValue),
-			},
-		},
+		Dimensions: dims,
 	}
-	for _, metric := range mq.QNames {
+	for i, metric := range mq.Items {
 		//		npar.SetMetricName(metric)
-		params.MetricName = aws.String(metric)
+		params.MetricName = aws.String(metric.Label)
 		resp, err := svc.GetMetricStatistics(&params)
 		if err != nil {
 			return fmt.Errorf("Metric query failed: %s", err.Error())
@@ -102,21 +110,13 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 			}
 		}
 
-		m := Metric{
-			Label:      *resp.Label,
-			Units:      unit,
-			Statistics: "Maximum",
-			Value:      value,
-		}
-		mq.Items = append(mq.Items, m)
+		mq.Items[i].Units = unit
+		mq.Items[i].Value = value
+		mq.Items[i].compareThresh()
+
 	}
 	sort.Sort(ByLabel(mq.Items))
 
-	for i, _ := range mq.Items {
-		mq.Items[i].Alert = compareThresh(mq.Items[i])
-		//assign value in place
-		//compareThresh(resp.Items[i])
-	}
 	return nil
 }
 
@@ -146,8 +146,8 @@ func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 		},
 		Dimensions: []*cloudwatch.Dimension{
 			{
-				Name:  aws.String(mq.DimName),
-				Value: aws.String(mq.DimValue),
+				Name:  aws.String(mq.Dims[0].DimName),
+				Value: aws.String(mq.Dims[0].DimValue),
 			},
 		},
 	}
@@ -193,7 +193,7 @@ func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 
 // function to compare threshold with query values and return html ready warning
 
-func compareThresh(q Metric) string {
+func (q *Metric) compareThresh() {
 	// adjust for transform
 	if q.Units == "MB" {
 		q.Value = q.Value * 1048576.0
@@ -206,7 +206,7 @@ func compareThresh(q Metric) string {
 	var maxwarn float64 = 100.0
 	var mincrit float64 = 0.0
 	var maxcrit float64 = 100.0
-	warnings := strings.Split(thresh[q.Label][0], ":")
+	warnings := strings.Split(q.Warning, ":")
 	if len(warnings) < 2 {
 		minwarn = 0
 		maxwarn, _ = strconv.ParseFloat(warnings[0], 64)
@@ -214,7 +214,7 @@ func compareThresh(q Metric) string {
 		minwarn, _ = strconv.ParseFloat(warnings[0], 64)
 		maxwarn, _ = strconv.ParseFloat(warnings[1], 64)
 	}
-	criticals := strings.Split(thresh[q.Label][1], ":")
+	criticals := strings.Split(q.Critical, ":")
 	if len(criticals) < 2 {
 		mincrit = 0.0
 		maxcrit, _ = strconv.ParseFloat(criticals[0], 64)
@@ -222,15 +222,13 @@ func compareThresh(q Metric) string {
 		mincrit, _ = strconv.ParseFloat(criticals[0], 64)
 		maxcrit, _ = strconv.ParseFloat(criticals[1], 64)
 	}
+	q.Alert = "success"
 	if q.Value > maxcrit || q.Value < mincrit {
-		return "danger"
-
+		q.Alert = "danger"
+	} else if q.Value > maxwarn || q.Value < minwarn {
+		q.Alert = "warning"
 	}
-	if q.Value > maxwarn || q.Value < minwarn {
-		return "warning"
 
-	}
-	return "success"
 }
 
 func checkInstance() error {
