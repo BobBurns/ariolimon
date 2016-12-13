@@ -3,7 +3,9 @@
  "namespace": "AWS/S3",
  "dimensions": [
 	{"dim_name": "BucketName",
-	 "dim_value": "s3-3423444"}
+	 "dim_value": "bobtestb1"},
+	{"dim_name": "StorageType",
+	 "dim_value": "StandardStorage"}
  ],
  "metrics": [
 	{"metric": "BucketSizeBytes",
