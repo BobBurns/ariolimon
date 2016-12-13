@@ -71,7 +71,7 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 
 	mq.Time = time.Now().Format(time.RFC822)
 	t := time.Now()
-	duration, _ := time.ParseDuration("-10m")
+	duration, _ := time.ParseDuration("-48h")
 	s := t.Add(duration)
 	var dims []*cloudwatch.Dimension
 	for i := 0; i < len(mq.Dims); i++ {
