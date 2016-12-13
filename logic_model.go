@@ -21,9 +21,9 @@ type EC2MetricsQuery struct {
 	Host      string      `json:"hostname"`
 	Namespace string      `json:"namespace"`
 	Dims      []Dimension `json:"dimensions"`
-	QNames    []string
-	Time      string
-	Items     []Metric `json:"metrics"`
+	//QNames    []string
+	Time  string
+	Items []Metric `json:"metrics"`
 }
 type Dimension struct {
 	DimName  string `json:"dim_name"`
@@ -74,26 +74,26 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 	duration, _ := time.ParseDuration("-10m")
 	s := t.Add(duration)
 	var dims []*cloudwatch.Dimension
-	for i, dim := range mq.Dims {
-		dims[i] = &cloudwatch.Dimension{
-			Name:  aws.String(dim.DimName),
-			Value: aws.String(dim.DimValue),
-		}
+	for i := 0; i < len(mq.Dims); i++ {
+		dims = append(dims, &cloudwatch.Dimension{
+			Name:  aws.String(mq.Dims[i].DimName),
+			Value: aws.String(mq.Dims[i].DimValue),
+		})
 	}
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:   aws.Time(t),
 		Namespace: aws.String(mq.Namespace),
 		Period:    aws.Int64(300),
 		//		MetricName: aws.String(metric),
-		StartTime: aws.Time(s),
-		Statistics: []*string{
-			aws.String("Maximum"),
-		},
+		StartTime:  aws.Time(s),
 		Dimensions: dims,
 	}
 	for i, metric := range mq.Items {
 		//		npar.SetMetricName(metric)
 		params.MetricName = aws.String(metric.Label)
+		params.Statistics = []*string{
+			aws.String(metric.Statistics),
+		}
 		resp, err := svc.GetMetricStatistics(&params)
 		if err != nil {
 			return fmt.Errorf("Metric query failed: %s", err.Error())
@@ -120,10 +120,11 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 	return nil
 }
 
-func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
+func (mq *EC2MetricsQuery) getMetricDetail(stat, name, timeframe string) ([]Metric, error) {
 
 	var duration time.Duration
 	var period int64
+	var results []Metric
 
 	switch timeframe {
 	case "24 hours":
@@ -135,6 +136,13 @@ func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 	}
 	t := time.Now()
 	s := t.Add(duration)
+	var dims []*cloudwatch.Dimension
+	for i := 0; i < len(mq.Dims); i++ {
+		dims = append(dims, &cloudwatch.Dimension{
+			Name:  aws.String(mq.Dims[i].DimName),
+			Value: aws.String(mq.Dims[i].DimValue),
+		})
+	}
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:    aws.Time(t),
 		Namespace:  aws.String(mq.Namespace),
@@ -142,18 +150,13 @@ func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 		MetricName: aws.String(name),
 		StartTime:  aws.Time(s),
 		Statistics: []*string{
-			aws.String("Maximum"),
+			aws.String(stat),
 		},
-		Dimensions: []*cloudwatch.Dimension{
-			{
-				Name:  aws.String(mq.Dims[0].DimName),
-				Value: aws.String(mq.Dims[0].DimValue),
-			},
-		},
+		Dimensions: dims,
 	}
 	resp, err := svc.GetMetricStatistics(&params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var trans float64 = 1.0
@@ -176,18 +179,18 @@ func (mq *EC2MetricsQuery) getMetricDetail(name, timeframe string) error {
 			Value:      *data.Maximum,
 			Time:       float64(data.Timestamp.Unix()),
 		}
-		mq.Items = append(mq.Items, m)
+		results = append(results, m)
 	}
-	sort.Sort(ByTime(mq.Items))
+	sort.Sort(ByTime(results))
 	// iterate through metrics and transform for graph
 	if trans > 1 {
-		for i, _ := range mq.Items {
-			mq.Items[i].Value = mq.Items[i].Value / trans
-			mq.Items[i].Units = tlabel
+		for i, _ := range results {
+			results[i].Value = results[i].Value / trans
+			results[i].Units = tlabel
 		}
 	}
 
-	return nil
+	return results, nil
 
 }
 

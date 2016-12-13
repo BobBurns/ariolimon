@@ -26,7 +26,7 @@ func init() {
 		"alertText": alertText,
 	}
 
-	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/root.html"))
 
 	f, err := os.Open("thresholds.conf")
 	if err != nil {
@@ -58,7 +58,7 @@ func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hostname := r.URL.Path[len("/device/"):]
 		hostquerry := hosts[hostname]
-		fmt.Println(hosts)
+		fmt.Println(hosts[hostname])
 		err := hostquerry.getStatistics()
 		if err != nil {
 			log.Fatalf("Error with getStatistics: %s", err)
@@ -74,87 +74,55 @@ func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
 	}
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	// check if there is a running instance
-	err := checkInstance()
-	if err != nil {
-		fmt.Fprintf(w, "No running instance: %v", err)
-		log.Fatalf("No running instance: %v", err)
-	}
-	// get aws metric data
-	var dimar []Dimension
-	dimar[0] = Dimension{
-		DimName:  "InstanceId",
-		DimValue: ID,
-	}
+func rootHandler(hostnames []string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var b bytes.Buffer
+		err := t.ExecuteTemplate(&b, "root.html", hostnames)
+		if err != nil {
+			fmt.Fprintf(w, "Error with template: %s ", err)
+			return
+		}
+		b.WriteTo(w)
 
-	mq := EC2MetricsQuery{
-		Dims:      dimar,
-		Namespace: "AWS/EC2",
 	}
-	// give cloudtap pkg a list of metrics to query
-	for m, _ := range thresh {
-		mq.QNames = append(mq.QNames, m)
-	}
-	err = mq.getStatistics()
-	if err != nil {
-		log.Fatalf("Error with getStatistics: %s", err)
-	}
-
-	var b bytes.Buffer
-	err = t.ExecuteTemplate(&b, "home2.html", mq)
-	if err != nil {
-		fmt.Fprintf(w, "Error with template: %s ", err)
-		return
-	}
-	b.WriteTo(w)
 }
 
-func detailHandler(w http.ResponseWriter, r *http.Request) {
+func detailHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			fmt.Fprintf(w, "Error with ParseForm\n")
+			return
+		}
+		query := r.FormValue("q")
+		host := r.FormValue("host")
+		stat := r.FormValue("stat")
 
-	err := checkInstance()
-	if err != nil {
-		fmt.Fprintf(w, "No running instance: %v", err)
-		log.Fatalf("No running instance: %v", err)
-	}
-	if err = r.ParseForm(); err != nil {
-		fmt.Fprintf(w, "Error with ParseForm\n")
-		return
-	}
-	// sanity check
-	q := r.FormValue("q")
-	if q == "" {
-		http.Redirect(w, r, "/", http.StatusFound)
-		//		fmt.Fprintf(w, "Malformed query!\n")
-		return
-	}
-	var dimar []Dimension
-	dimar[0] = Dimension{
-		DimName:  "InstanceId",
-		DimValue: ID,
-	}
-	mqd := EC2MetricsQuery{
-		Dims:      dimar,
-		Namespace: "AWS/EC2",
-	}
-	err = mqd.getMetricDetail(q, "4 hours")
-	if err != nil {
-		fmt.Fprintf(w, "%q\n", err)
-	}
-	currentMetric, err := graphMetric(mqd.Items)
-	if err != nil {
-		fmt.Fprintf(w, "%q\n", err)
-	}
-	currentMetric.compareThresh()
+		if query == "" || host == "" {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 
-	var b bytes.Buffer
-	err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
-	if err != nil {
-		fmt.Fprintf(w, "Error with template: %s ", err)
-		return
-	}
-	b.WriteTo(w)
+		hostquery := hosts[host]
+		fmt.Println(hosts[host])
+		results, err := hostquery.getMetricDetail(stat, query, "4 hours")
+		if err != nil {
+			log.Fatalf("Error with getMetricDetail: %s", err)
+		}
 
+		currentMetric, err := graphMetric(results)
+		if err != nil {
+			fmt.Fprintf(w, "%q\n", err)
+		}
+		currentMetric.compareThresh()
+		var b bytes.Buffer
+		err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
+		if err != nil {
+			fmt.Fprintf(w, "Error with template: %s ", err)
+			return
+		}
+		b.WriteTo(w)
+
+	}
 }
 
 // function to handle template output .Alert text
@@ -184,13 +152,16 @@ func main() {
 	fmt.Println(hosts)
 	// make a map of hostnames to EC2MetricsQuery
 	var hostmap = make(map[string]EC2MetricsQuery)
+	var hostnames []string
 	for _, query := range hosts {
 		hostmap[query.Host] = query
+		hostnames = append(hostnames, query.Host)
 	}
 	// TODO: handle file directory html/random
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	http.HandleFunc("/", rootHandler)
+	http.Handle("/device/html/", http.StripPrefix("/device/html/", http.FileServer(http.Dir("html"))))
+	http.HandleFunc("/", rootHandler(hostnames))
 	http.HandleFunc("/device/", devHandler(hostmap))
-	http.HandleFunc("/detail", detailHandler)
+	http.HandleFunc("/device/detail", detailHandler(hostmap))
 	http.ListenAndServe(":8082", nil)
 }

@@ -27,7 +27,7 @@
 	 "warning": "0:5",
 	 "critical": "0:50"},
 	{"metric": "NetworkIn",
-	 "statistics": "Sum",
+	 "statistics": "Maximum",
 	 "warning": "0:100",
 	 "critical": "0:100"}
 ]},
@@ -35,7 +35,9 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-different"}
+	 "dim_value": "i-different"},
+	{"dim_name": "bla",
+	 "dim_value": "test"}
  ],
  "metrics": [
 	{"metric": "CPUUtilization",

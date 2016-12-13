@@ -30,9 +30,10 @@
 	    <h4><a href="#">apm-prod-3</a></h4>
     	 </div>
 	 <div class="col-md-10">
+	 {{ $host := .Host }}
          {{range .Items}}
          <div class="alert alert-{{ .Alert }}" role="alert">
-	    apm-prod-1 <a href="detail?q={{ .Label }}" class="alert-link">{{ .Label }}</a>
+		 apm-prod-1 <a href="detail?q={{ .Label }}&host={{ $host }}&stat={{ .Statistics }}" class="alert-link">{{ .Label }}</a>
 	    - {{ .Value }} {{ .Units }}</div>
          {{ end }}
     	 </div>
