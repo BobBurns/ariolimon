@@ -31,10 +31,10 @@
     	 </div>
 	 <div class="col-md-10">
 	 {{ $host := .Host }}
-         {{range .Items}}
-         <div class="alert alert-{{ .Alert }}" role="alert">
-		 apm-prod-1 <a href="detail?q={{ .Label }}&host={{ $host }}&stat={{ .Statistics }}" class="alert-link">{{ .Label }}</a>
-	    - {{ .Value | printf "%.2f" }} {{ .Units }}</div>
+         {{range .}}
+         <div class="alert alert-{{ .QueryResult[0].Alert }}" role="alert">
+		 {{ .Host }}<a href="detail?q={{ .Name }}" class="alert-link">{{ .Label }}</a>
+	    - {{ .QueryResult[0].Value | printf "%.2f" }} {{ .QueryResult[0].Units }}</div>
          {{ end }}
     	 </div>
       </div>

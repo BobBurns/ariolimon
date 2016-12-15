@@ -9,7 +9,7 @@ import (
 )
 
 // returns last value and plots a graph
-func graphMetric(metrics []Metric) (Metric, error) {
+func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 
 	xticks := plot.TimeTicks{Format: "02 Jan 06\n15:04 UTC"}
 	pts := make(plotter.XYs, len(metrics))
@@ -19,17 +19,17 @@ func graphMetric(metrics []Metric) (Metric, error) {
 	}
 	p, err := plot.New()
 	if err != nil {
-		return Metric{}, err
+		return QueryResult{}, err
 	}
 	//	values = pts
-	p.Title.Text = metrics[0].Label
+	p.Title.Text = title
 	p.X.Tick.Marker = xticks
-	p.Y.Label.Text = "Max " + metrics[0].Units
+	p.Y.Label.Text = title
 	p.Add(plotter.NewGrid())
 
 	line, points, err := plotter.NewLinePoints(pts)
 	if err != nil {
-		return Metric{}, err
+		return QueryResult{}, err
 	}
 
 	line.Color = color.RGBA{R: 17, G: 11, B: 192, A: 255}
@@ -39,7 +39,7 @@ func graphMetric(metrics []Metric) (Metric, error) {
 	p.Add(line, points)
 	err = p.Save(20*vg.Centimeter, 10*vg.Centimeter, "html/currentgraph.png")
 	if err != nil {
-		return Metric{}, err
+		return QueryResult{}, err
 	}
 	return metrics[len(metrics)-1], nil
 }

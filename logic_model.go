@@ -12,38 +12,37 @@ import (
 	"time"
 )
 
-const ID string = "i-029380affdd1af297"
+const debug int = 1
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
 
-type EC2MetricsQuery struct {
-	Host      string      `json:"hostname"`
-	Namespace string      `json:"namespace"`
-	Dims      []Dimension `json:"dimensions"`
-	//QNames    []string
-	Time  string
-	Items []Metric `json:"metrics"`
-}
 type Dimension struct {
 	DimName  string `json:"dim_name"`
 	DimValue string `json:"dim_value"`
 }
+type QueryResult struct {
+	Alert string
+	Units string
+	Value float64
+	Time  float64
+}
 
-type Metric struct {
-	Label      string `json:"metric"`
-	Units      string
-	Statistics string `json:"statistics"`
-	Warning    string `json:"warning"`
-	Critical   string `json:"critical"`
-	Alert      string
-	Value      float64
-	Time       float64
+type MetricQuery struct {
+	Name       string      `json:"name"`
+	Host       string      `json:"hostname"`
+	Namespace  string      `json:"namespace"`
+	Dims       []Dimension `json:"dimensions"`
+	Label      string      `json:"metric"`
+	Statistics string      `json:"statistics"`
+	Warning    string      `json:"warning"`
+	Critical   string      `json:"critical"`
+	Results    []QueryResult
 }
 
 // sort functions
-type ByLabel []Metric
-type ByTime []Metric
+type ByLabel []MetricQuery
+type ByTime []QueryResult
 
 func (a ByTime) Len() int {
 	return len(a)
@@ -67,15 +66,13 @@ func (a ByLabel) Less(i, j int) bool {
 	return a[i].Label < a[j].Label
 }
 
-func (mq *EC2MetricsQuery) getStatistics() error {
+func (mq *MetricQuery) getStatistics(timeframe string) error {
 
-	mq.Time = time.Now().Format("2006-01-02T15:04:05-0700")
 	t := time.Now()
-	dstring := "-15m"
 	if mq.Namespace == "AWS/S3" {
-		dstring = "-36h"
+		timeframe = "-36h"
 	}
-	duration, _ := time.ParseDuration(dstring)
+	duration, _ := time.ParseDuration(timeframe)
 	s := t.Add(duration)
 	var dims []*cloudwatch.Dimension
 	for i := 0; i < len(mq.Dims); i++ {
@@ -91,38 +88,34 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 		//		MetricName: aws.String(metric),
 		StartTime:  aws.Time(s),
 		Dimensions: dims,
+		MetricName: aws.String(mq.Label),
+		Statistics: []*string{
+			aws.String(mq.Statistics),
+		},
 	}
-	for i, metric := range mq.Items {
-		//		npar.SetMetricName(metric)
-		params.MetricName = aws.String(metric.Label)
-		params.Statistics = []*string{
-			aws.String(metric.Statistics),
-		}
-		fmt.Println("params:")
-		fmt.Println(params)
-		resp, err := svc.GetMetricStatistics(&params)
-		if err != nil {
-			return fmt.Errorf("Metric query failed: %s", err.Error())
-		}
-		if len(resp.Datapoints) == 0 {
-			fmt.Println("no datapoints")
-			return errors.New("no data available")
-		}
-		unit := *resp.Datapoints[len(resp.Datapoints)-1].Unit
+	resp, err := svc.GetMetricStatistics(&params)
+	if err != nil {
+		return fmt.Errorf("Metric query failed: %s", err.Error())
+	}
+	if len(resp.Datapoints) == 0 {
+		fmt.Println("no datapoints")
+		return errors.New("no data available")
+	}
+	for _, dp := range resp.Datapoints {
+		unit := *dp.Unit
 		value := 0.0
-		switch metric.Statistics {
+		switch mq.Statistics {
 		case "Maximum":
-			value = *resp.Datapoints[len(resp.Datapoints)-1].Maximum
+			value = *dp.Maximum
 		case "Average":
-			value = *resp.Datapoints[len(resp.Datapoints)-1].Average
+			value = *dp.Average
 		case "Sum":
-			value = *resp.Datapoints[len(resp.Datapoints)-1].Sum
+			value = *dp.Sum
 		case "SampleCount":
-			value = *resp.Datapoints[len(resp.Datapoints)-1].SampleCount
+			value = *dp.SampleCount
 		case "Minimum":
-			value = *resp.Datapoints[len(resp.Datapoints)-1].Minimum
+			value = *dp.Minimum
 		}
-		fmt.Printf("Value before conv: %f\n", value)
 
 		if unit == "Bytes" {
 			if value > 1048576.0 {
@@ -133,103 +126,33 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 				unit = "KB"
 			}
 		}
-
-		fmt.Printf("Value after conv: %v\n", value)
-		mq.Items[i].Units = unit
-		mq.Items[i].Value = float64(value)
-		mq.Items[i].compareThresh()
-
+		data := QueryResult{
+			Value: value,
+			Units: unit,
+			Time:  float64(dp.Timestamp.Unix()),
+		}
+		data.compareThresh(mq.Warning, mq.Critical)
+		mq.Results = append(mq.Results, data)
 	}
-	sort.Sort(ByLabel(mq.Items))
-	fmt.Println(mq.Items)
+
+	sort.Sort(ByTime(mq.Results))
+	if debug == 1 {
+		fmt.Printf("Get Statistics Result: %v", mq)
+	}
 
 	return nil
 }
 
-func (mq *EC2MetricsQuery) getMetricDetail(stat, name, timeframe string) ([]Metric, error) {
-
-	var duration time.Duration
-	var period int64
-	var results []Metric
-
-	switch timeframe {
-	case "24 hours":
-		duration, _ = time.ParseDuration("-24h")
-		period = 3600 // 1 hr
-	default:
-		duration, _ = time.ParseDuration("-4h")
-		period = 900 // 5min
-	}
-	t := time.Now()
-	s := t.Add(duration)
-	var dims []*cloudwatch.Dimension
-	for i := 0; i < len(mq.Dims); i++ {
-		dims = append(dims, &cloudwatch.Dimension{
-			Name:  aws.String(mq.Dims[i].DimName),
-			Value: aws.String(mq.Dims[i].DimValue),
-		})
-	}
-	params := cloudwatch.GetMetricStatisticsInput{
-		EndTime:    aws.Time(t),
-		Namespace:  aws.String(mq.Namespace),
-		Period:     aws.Int64(period),
-		MetricName: aws.String(name),
-		StartTime:  aws.Time(s),
-		Statistics: []*string{
-			aws.String(stat),
-		},
-		Dimensions: dims,
-	}
-	resp, err := svc.GetMetricStatistics(&params)
-	if err != nil {
-		return nil, err
-	}
-
-	var trans float64 = 1.0
-	var tlabel string = ""
-	for _, data := range resp.Datapoints {
-		// check max values
-		if *data.Unit == "Bytes" {
-			if *data.Maximum > 1048576.0 {
-				trans = 1048576.0
-				tlabel = "MB"
-			} else if *data.Maximum > 1028.0 {
-				trans = 1028.0
-				tlabel = "KB"
-			}
-		}
-		m := Metric{
-			Label:      *resp.Label,
-			Units:      *data.Unit,
-			Statistics: "Maximum",
-			Value:      *data.Maximum,
-			Time:       float64(data.Timestamp.Unix()),
-		}
-		results = append(results, m)
-	}
-	sort.Sort(ByTime(results))
-	// iterate through metrics and transform for graph
-	if trans > 1 {
-		for i, _ := range results {
-			results[i].Value = results[i].Value / trans
-			results[i].Units = tlabel
-		}
-	}
-
-	return results, nil
-
-}
-
 // function to compare threshold with query values and return html ready warning
 
-func (q *Metric) compareThresh() {
+func (qr *QueryResult) compareThresh(warn, crit string) {
 	// adjust for transform
-	value := q.Value // make a copy
+	value := qr.Value // make a copy
 
-	if q.Units == "MB" {
+	if qr.Units == "MB" {
 		value = value * 1048576.0
 	}
-	if q.Units == "KB" {
+	if qr.Units == "KB" {
 		value = value * 1024.0
 	}
 
@@ -237,7 +160,7 @@ func (q *Metric) compareThresh() {
 	var maxwarn float64 = 100.0
 	var mincrit float64 = 0.0
 	var maxcrit float64 = 100.0
-	warnings := strings.Split(q.Warning, ":")
+	warnings := strings.Split(warn, ":")
 	if len(warnings) < 2 {
 		minwarn = 0
 		maxwarn, _ = strconv.ParseFloat(warnings[0], 64)
@@ -245,7 +168,7 @@ func (q *Metric) compareThresh() {
 		minwarn, _ = strconv.ParseFloat(warnings[0], 64)
 		maxwarn, _ = strconv.ParseFloat(warnings[1], 64)
 	}
-	criticals := strings.Split(q.Critical, ":")
+	criticals := strings.Split(crit, ":")
 	if len(criticals) < 2 {
 		mincrit = 0.0
 		maxcrit, _ = strconv.ParseFloat(criticals[0], 64)
@@ -253,37 +176,11 @@ func (q *Metric) compareThresh() {
 		mincrit, _ = strconv.ParseFloat(criticals[0], 64)
 		maxcrit, _ = strconv.ParseFloat(criticals[1], 64)
 	}
-	q.Alert = "success"
+	qr.Alert = "success"
 	if value > maxcrit || value < mincrit {
-		q.Alert = "danger"
+		qr.Alert = "danger"
 	} else if value > maxwarn || value < minwarn {
-		q.Alert = "warning"
+		qr.Alert = "warning"
 	}
 
-}
-
-func checkInstance() error {
-	params := &ec2.DescribeInstancesInput{
-		DryRun: aws.Bool(false),
-		Filters: []*ec2.Filter{
-			{
-				Name: aws.String("instance-id"),
-				Values: []*string{
-					aws.String(ID),
-				},
-			},
-		},
-	}
-	resp, err := svc_ec2.DescribeInstances(params)
-
-	if err != nil {
-		return err
-	}
-
-	code := *resp.Reservations[0].Instances[0].State.Code
-	if code != 16 {
-		es := fmt.Sprintf("Instance %s not running! Code: %d \n", ID, code)
-		return errors.New(es)
-	}
-	return nil
 }

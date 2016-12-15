@@ -54,19 +54,19 @@ func init() {
 }
 
 // http handlers
-func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
+func devHandler(querys *[]MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		hostname := r.URL.Path[len("/device/"):]
-		hostquerry := hosts[hostname]
-		fmt.Println(hosts[hostname])
-		err := hostquerry.getStatistics()
-		if err != nil {
-			log.Printf("Error with getStatistics: %s", err)
-			http.Redirect(w, r, "/error", http.StatusFound)
+		for _, query := range *querys {
 
+			err := hostquerry.getStatistics("-15m")
+			if err != nil {
+				log.Printf("Error with getStatistics: %s", err)
+				http.Redirect(w, r, "/error", http.StatusFound)
+
+			}
 		}
 		var b bytes.Buffer
-		err = t.ExecuteTemplate(&b, "home2.html", hostquerry)
+		err = t.ExecuteTemplate(&b, "home2.html", querys)
 		if err != nil {
 			fmt.Fprintf(w, "Error with template: %s ", err)
 			return
@@ -80,42 +80,33 @@ func errHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Oops! Internal Error.\nNo Data Available.\n****************")
 }
 
-func rootHandler(hostnames []string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var b bytes.Buffer
-		err := t.ExecuteTemplate(&b, "root.html", hostnames)
-		if err != nil {
-			fmt.Fprintf(w, "Error with template: %s ", err)
-			return
-		}
-		b.WriteTo(w)
-
-	}
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	//write error mess
+	fmt.Fprintf(w, "Welcome to Ariolimon. Visit /device/.\n****************")
 }
 
-func detailHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
+func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			fmt.Fprintf(w, "Error with ParseForm\n")
 			return
 		}
 		query := r.FormValue("q")
-		host := r.FormValue("host")
-		stat := r.FormValue("stat")
 
-		if query == "" || host == "" {
+		if query == "" {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		hostquery := hosts[host]
-		fmt.Println(hosts[host])
-		results, err := hostquery.getMetricDetail(stat, query, "4 hours")
+		hostquery := hosts[q]
+		err := hostquery.getStatistics("-4h")
 		if err != nil {
 			log.Fatalf("Error with getMetricDetail: %s", err)
 		}
 
-		currentMetric, err := graphMetric(results)
+		title := ""
+		fmt.Sprintf(title, "%s %s", hostquery.Statistics, hostquery.Results[0].Units)
+		currentMetric, err := graphMetric(hostquery.Results, title)
 		if err != nil {
 			fmt.Fprintf(w, "%q\n", err)
 		}
@@ -146,8 +137,8 @@ func alertText(alert string) string {
 }
 
 func main() {
-	var hosts []EC2MetricsQuery
-	data, err := ioutil.ReadFile("thresh.json")
+	var hosts []MetricQuery
+	data, err := ioutil.ReadFile("thresh2.json")
 	if err != nil {
 		log.Fatalf("readfile: %v", err)
 	}
@@ -155,19 +146,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("unmarshal: %v", err)
 	}
-	fmt.Println(hosts)
-	// make a map of hostnames to EC2MetricsQuery
-	var hostmap = make(map[string]EC2MetricsQuery)
-	var hostnames []string
-	for _, query := range hosts {
-		hostmap[query.Host] = query
-		hostnames = append(hostnames, query.Host)
+	if debug == 1 {
+		fmt.Println(hosts)
+	}
+	// make a map of hostnames to MetricQuery
+	var namemap = make(map[string]MetricQuery)
+	for i, _ := range hosts {
+		namemap[hosts[i].Name] = hosts[i]
 	}
 	// TODO: handle file directory html/random
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 	http.Handle("/device/html/", http.StripPrefix("/device/html/", http.FileServer(http.Dir("html"))))
-	http.HandleFunc("/", rootHandler(hostnames))
-	http.HandleFunc("/device/", devHandler(hostmap))
+	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/device/", devHandler(&hosts))
 	http.HandleFunc("/device/detail", detailHandler(hostmap))
 	http.HandleFunc("/error", errHandler)
 	http.ListenAndServe(":8082", nil)
