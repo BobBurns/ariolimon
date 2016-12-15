@@ -11,11 +11,7 @@
 	{"metric": "BucketSizeBytes",
 	 "statistics": "Average",
 	 "warning": "0:10",
-	 "critical": "0:50"},
-	{"metric": "AllRequests",
-	 "statistics": "Sum",
-	 "warning": "0:100",
-	 "critical": "0:100"}
+	 "critical": "0:50"}
 ]},
 {"hostname": "apm-prod-1",
  "namespace": "AWS/EC2",
@@ -37,9 +33,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-different"},
-	{"dim_name": "bla",
-	 "dim_value": "test"}
+	 "dim_value": "i-05fc6c9c639ef395d"}
  ],
  "metrics": [
 	{"metric": "CPUUtilization",
@@ -47,8 +41,20 @@
 	 "warning": "0:5",
 	 "critical": "0:50"},
 	{"metric": "NetworkIn",
-	 "statistics": "Sum",
+	 "statistics": "Maximum",
 	 "warning": "0:100",
 	 "critical": "0:100"}
+]},
+{"hostname": "apm-ebs-prod-2",
+ "namespace": "AWS/EBS",
+ "dimensions": [
+	{"dim_name": "VolumeId",
+	 "dim_value": "vol-040940a671907e1a8"}
+ ],
+ "metrics": [
+	{"metric": "VolumeIdleTime",
+	 "statistics": "Maximum",
+	 "warning": "0:5",
+	 "critical": "0:50"}
 ]}
 ]

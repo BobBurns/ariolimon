@@ -34,7 +34,7 @@
          {{range .Items}}
          <div class="alert alert-{{ .Alert }}" role="alert">
 		 apm-prod-1 <a href="detail?q={{ .Label }}&host={{ $host }}&stat={{ .Statistics }}" class="alert-link">{{ .Label }}</a>
-	    - {{ .Value }} {{ .Units }}</div>
+	    - {{ .Value | printf "%.2f" }} {{ .Units }}</div>
          {{ end }}
     	 </div>
       </div>

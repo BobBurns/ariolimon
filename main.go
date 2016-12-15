@@ -61,7 +61,9 @@ func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
 		fmt.Println(hosts[hostname])
 		err := hostquerry.getStatistics()
 		if err != nil {
-			log.Fatalf("Error with getStatistics: %s", err)
+			log.Printf("Error with getStatistics: %s", err)
+			http.Redirect(w, r, "/error", http.StatusFound)
+
 		}
 		var b bytes.Buffer
 		err = t.ExecuteTemplate(&b, "home2.html", hostquerry)
@@ -72,6 +74,10 @@ func devHandler(hosts map[string]EC2MetricsQuery) http.HandlerFunc {
 		b.WriteTo(w)
 
 	}
+}
+func errHandler(w http.ResponseWriter, r *http.Request) {
+	//write error mess
+	fmt.Fprintf(w, "Oops! Internal Error.\nNo Data Available.\n****************")
 }
 
 func rootHandler(hostnames []string) http.HandlerFunc {
@@ -163,5 +169,6 @@ func main() {
 	http.HandleFunc("/", rootHandler(hostnames))
 	http.HandleFunc("/device/", devHandler(hostmap))
 	http.HandleFunc("/device/detail", detailHandler(hostmap))
+	http.HandleFunc("/error", errHandler)
 	http.ListenAndServe(":8082", nil)
 }

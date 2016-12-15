@@ -69,9 +69,13 @@ func (a ByLabel) Less(i, j int) bool {
 
 func (mq *EC2MetricsQuery) getStatistics() error {
 
-	mq.Time = time.Now().Format(time.RFC822)
+	mq.Time = time.Now().Format("2006-01-02T15:04:05-0700")
 	t := time.Now()
-	duration, _ := time.ParseDuration("-48h")
+	dstring := "-15m"
+	if mq.Namespace == "AWS/S3" {
+		dstring = "-36h"
+	}
+	duration, _ := time.ParseDuration(dstring)
 	s := t.Add(duration)
 	var dims []*cloudwatch.Dimension
 	for i := 0; i < len(mq.Dims); i++ {
@@ -94,28 +98,50 @@ func (mq *EC2MetricsQuery) getStatistics() error {
 		params.Statistics = []*string{
 			aws.String(metric.Statistics),
 		}
+		fmt.Println("params:")
+		fmt.Println(params)
 		resp, err := svc.GetMetricStatistics(&params)
 		if err != nil {
 			return fmt.Errorf("Metric query failed: %s", err.Error())
 		}
+		if len(resp.Datapoints) == 0 {
+			fmt.Println("no datapoints")
+			return errors.New("no data available")
+		}
 		unit := *resp.Datapoints[len(resp.Datapoints)-1].Unit
-		value := *resp.Datapoints[len(resp.Datapoints)-1].Maximum
+		value := 0.0
+		switch metric.Statistics {
+		case "Maximum":
+			value = *resp.Datapoints[len(resp.Datapoints)-1].Maximum
+		case "Average":
+			value = *resp.Datapoints[len(resp.Datapoints)-1].Average
+		case "Sum":
+			value = *resp.Datapoints[len(resp.Datapoints)-1].Sum
+		case "SampleCount":
+			value = *resp.Datapoints[len(resp.Datapoints)-1].SampleCount
+		case "Minimum":
+			value = *resp.Datapoints[len(resp.Datapoints)-1].Minimum
+		}
+		fmt.Printf("Value before conv: %f\n", value)
+
 		if unit == "Bytes" {
-			if value > 1048576 {
-				value = value / 104857
+			if value > 1048576.0 {
+				value = value / 104857.0
 				unit = "MB"
-			} else if value > 1028 {
-				value = value / 1028
+			} else if value > 1028.0 {
+				value = value / 1028.0
 				unit = "KB"
 			}
 		}
 
+		fmt.Printf("Value after conv: %v\n", value)
 		mq.Items[i].Units = unit
-		mq.Items[i].Value = value
+		mq.Items[i].Value = float64(value)
 		mq.Items[i].compareThresh()
 
 	}
 	sort.Sort(ByLabel(mq.Items))
+	fmt.Println(mq.Items)
 
 	return nil
 }
@@ -198,11 +224,13 @@ func (mq *EC2MetricsQuery) getMetricDetail(stat, name, timeframe string) ([]Metr
 
 func (q *Metric) compareThresh() {
 	// adjust for transform
+	value := q.Value // make a copy
+
 	if q.Units == "MB" {
-		q.Value = q.Value * 1048576.0
+		value = value * 1048576.0
 	}
 	if q.Units == "KB" {
-		q.Value = q.Value * 1024.0
+		value = value * 1024.0
 	}
 
 	var minwarn float64 = 0.0
@@ -226,9 +254,9 @@ func (q *Metric) compareThresh() {
 		maxcrit, _ = strconv.ParseFloat(criticals[1], 64)
 	}
 	q.Alert = "success"
-	if q.Value > maxcrit || q.Value < mincrit {
+	if value > maxcrit || value < mincrit {
 		q.Alert = "danger"
-	} else if q.Value > maxwarn || q.Value < minwarn {
+	} else if value > maxwarn || value < minwarn {
 		q.Alert = "warning"
 	}
 
