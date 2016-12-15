@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -12,7 +11,7 @@ import (
 	"time"
 )
 
-const debug int = 1
+const debug int = 0
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
@@ -84,8 +83,7 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:   aws.Time(t),
 		Namespace: aws.String(mq.Namespace),
-		Period:    aws.Int64(300),
-		//		MetricName: aws.String(metric),
+		Period:    aws.Int64(360),
 		StartTime:  aws.Time(s),
 		Dimensions: dims,
 		MetricName: aws.String(mq.Label),
@@ -98,8 +96,18 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 		return fmt.Errorf("Metric query failed: %s", err.Error())
 	}
 	if len(resp.Datapoints) == 0 {
-		fmt.Println("no datapoints")
-		return errors.New("no data available")
+		if debug == 1 {
+			fmt.Println("no datapoints")
+		}
+
+		data := QueryResult{
+			Value: 0.0,
+			Units: "Unknown",
+			Time:  float64(time.Now().Unix()),
+			Alert: "Unknown",
+		}
+		mq.Results = append(mq.Results, data)
+		return nil
 	}
 	for _, dp := range resp.Datapoints {
 		unit := *dp.Unit

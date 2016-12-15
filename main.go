@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -13,12 +12,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 )
 
 var t *template.Template
-var thresh = make(map[string][]string)
 
 func init() {
 	// parse html template and threshold configuration file
@@ -28,17 +24,6 @@ func init() {
 
 	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/root.html"))
 
-	f, err := os.Open("thresholds.conf")
-	if err != nil {
-		fmt.Printf("Could not open thresholds.conf: %s", err)
-		os.Exit(1)
-	}
-	// map metric names and thresholds
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		result := strings.Fields(scanner.Text())
-		thresh[result[0]] = []string{result[1], result[2]}
-	}
 	// init cloudwatch session
 
 	sess, err := session.NewSession(&aws.Config{
@@ -54,19 +39,22 @@ func init() {
 }
 
 // http handlers
-func devHandler(querys *[]MetricQuery) http.HandlerFunc {
+func devHandler(querys []MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		for _, query := range *querys {
+		for i, _ := range querys {
 
-			err := hostquerry.getStatistics("-15m")
+			err := querys[i].getStatistics("-10m")
 			if err != nil {
 				log.Printf("Error with getStatistics: %s", err)
 				http.Redirect(w, r, "/error", http.StatusFound)
 
 			}
 		}
+		if debug == 1 {
+			fmt.Printf("%v", querys)
+		}
 		var b bytes.Buffer
-		err = t.ExecuteTemplate(&b, "home2.html", querys)
+		err := t.ExecuteTemplate(&b, "home2.html", querys)
 		if err != nil {
 			fmt.Fprintf(w, "Error with template: %s ", err)
 			return
@@ -82,7 +70,8 @@ func errHandler(w http.ResponseWriter, r *http.Request) {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	//write error mess
-	fmt.Fprintf(w, "Welcome to Ariolimon. Visit /device/.\n****************")
+
+	http.Redirect(w, r, "/device/", http.StatusFound)
 }
 
 func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
@@ -98,7 +87,7 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 			return
 		}
 
-		hostquery := hosts[q]
+		hostquery := hosts[query]
 		err := hostquery.getStatistics("-4h")
 		if err != nil {
 			log.Fatalf("Error with getMetricDetail: %s", err)
@@ -110,7 +99,7 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 		if err != nil {
 			fmt.Fprintf(w, "%q\n", err)
 		}
-		currentMetric.compareThresh()
+		currentMetric.compareThresh(hostquery.Warning, hostquery.Critical)
 		var b bytes.Buffer
 		err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
 		if err != nil {
@@ -158,8 +147,8 @@ func main() {
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 	http.Handle("/device/html/", http.StripPrefix("/device/html/", http.FileServer(http.Dir("html"))))
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/device/", devHandler(&hosts))
-	http.HandleFunc("/device/detail", detailHandler(hostmap))
+	http.HandleFunc("/device/", devHandler(hosts))
+	http.HandleFunc("/device/detail", detailHandler(namemap))
 	http.HandleFunc("/error", errHandler)
 	http.ListenAndServe(":8082", nil)
 }
