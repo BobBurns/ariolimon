@@ -127,7 +127,7 @@ func alertText(alert string) string {
 
 func main() {
 	var hosts []MetricQuery
-	data, err := ioutil.ReadFile("thresh2.json")
+	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {
 		log.Fatalf("readfile: %v", err)
 	}
