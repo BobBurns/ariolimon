@@ -81,9 +81,9 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 		})
 	}
 	params := cloudwatch.GetMetricStatisticsInput{
-		EndTime:   aws.Time(t),
-		Namespace: aws.String(mq.Namespace),
-		Period:    aws.Int64(360),
+		EndTime:    aws.Time(t),
+		Namespace:  aws.String(mq.Namespace),
+		Period:     aws.Int64(360),
 		StartTime:  aws.Time(s),
 		Dimensions: dims,
 		MetricName: aws.String(mq.Label),
@@ -104,7 +104,7 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 			Value: 0.0,
 			Units: "Unknown",
 			Time:  float64(time.Now().Unix()),
-			Alert: "Unknown",
+			Alert: "info",
 		}
 		mq.Results = append(mq.Results, data)
 		return nil

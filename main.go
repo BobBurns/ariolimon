@@ -12,14 +12,25 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
 var t *template.Template
+
+type Detail struct {
+	Host    string
+	Time    string
+	Service string
+	Alert   string
+	Value   float64
+	Units   string
+}
 
 func init() {
 	// parse html template and threshold configuration file
 	funcMap := template.FuncMap{
 		"alertText": alertText,
+		"ctime":     ctime,
 	}
 
 	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/root.html"))
@@ -94,14 +105,22 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 		}
 
 		title := ""
-		fmt.Sprintf(title, "%s %s", hostquery.Statistics, hostquery.Results[0].Units)
+		fmt.Sprintf(title, "Statistics for %s", hostquery.Label)
 		currentMetric, err := graphMetric(hostquery.Results, title)
 		if err != nil {
 			fmt.Fprintf(w, "%q\n", err)
 		}
-		currentMetric.compareThresh(hostquery.Warning, hostquery.Critical)
+		detail := Detail{
+			Host:    hostquery.Host,
+			Service: hostquery.Label,
+			Time:    time.Unix(int64(currentMetric.Time), 0).Format(time.RFC822),
+			Alert:   currentMetric.Alert,
+			Value:   currentMetric.Value,
+			Units:   currentMetric.Units,
+		}
+		//currentMetric.compareThresh(hostquery.Warning, hostquery.Critical)
 		var b bytes.Buffer
-		err = t.ExecuteTemplate(&b, "detail.html", currentMetric)
+		err = t.ExecuteTemplate(&b, "detail.html", detail)
 		if err != nil {
 			fmt.Fprintf(w, "Error with template: %s ", err)
 			return
@@ -120,9 +139,14 @@ func alertText(alert string) string {
 		return "Warning"
 	case "success":
 		return "OK"
+	case "info":
+		return "Unknown"
 	}
 
 	return "Unknown"
+}
+func ctime() string {
+	return time.Now().Format(time.RFC822)
 }
 
 func main() {
@@ -150,5 +174,6 @@ func main() {
 	http.HandleFunc("/device/", devHandler(hosts))
 	http.HandleFunc("/device/detail", detailHandler(namemap))
 	http.HandleFunc("/error", errHandler)
+	fmt.Println("Server started at localhost:8082")
 	http.ListenAndServe(":8082", nil)
 }

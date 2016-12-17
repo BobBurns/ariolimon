@@ -6,16 +6,36 @@ import (
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
 	"image/color"
+	"time"
 )
 
 // returns last value and plots a graph
 func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 
-	xticks := plot.TimeTicks{Format: "02 Jan 06\n15:04 UTC"}
+	var trans float64 = 1.0
+	var tlabel string = metrics[0].Units
+	if tlabel == "Bytes" {
+		for _, data := range metrics {
+			if data.Value > 1048576.0 {
+				trans = 1048576.0
+				tlabel = "MB"
+			} else if data.Value > 1028.0 {
+				trans = 1028.0
+				tlabel = "KB"
+			}
+		}
+	}
+	local := func(f float64) time.Time {
+		return time.Unix(int64(f), 0).Local()
+	}
+	xticks := plot.TimeTicks{
+		Format: time.Stamp,
+		Time:   local,
+	}
 	pts := make(plotter.XYs, len(metrics))
 	for i := range pts {
 		pts[i].X = metrics[i].Time
-		pts[i].Y = metrics[i].Value
+		pts[i].Y = metrics[i].Value / trans
 	}
 	p, err := plot.New()
 	if err != nil {
@@ -24,7 +44,7 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 	//	values = pts
 	p.Title.Text = title
 	p.X.Tick.Marker = xticks
-	p.Y.Label.Text = title
+	p.Y.Label.Text = tlabel
 	p.Add(plotter.NewGrid())
 
 	line, points, err := plotter.NewLinePoints(pts)
