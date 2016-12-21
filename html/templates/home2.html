@@ -30,7 +30,7 @@
          {{range .}}
 	 {{ $result := index .Results 0 }}
          <div class="alert alert-{{ $result.Alert }}" role="alert">
-		 {{ .Host }} <a href="detail?q={{ .Name }}" class="alert-link">{{ .Label }}</a>
+		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
 	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
          {{ end }}
     	 </div>
@@ -41,6 +41,6 @@
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="js/bootstrap.min.js"></script>
+    <script src="html/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
   </body>
 </html>
