@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -82,11 +84,16 @@ func errHandler(w http.ResponseWriter, r *http.Request) {
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	//write error mess
 
+	//	log.Fatal("not found")
 	http.Redirect(w, r, "/device/", http.StatusFound)
 }
 
 func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		//		err := validatePath(w, r)
+		//		if err != nil {
+		//			return
+		//		}
 		if err := r.ParseForm(); err != nil {
 			fmt.Fprintf(w, "Error with ParseForm\n")
 			return
@@ -94,14 +101,18 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 		query := r.FormValue("q")
 
 		if query == "" {
-			http.Redirect(w, r, "/", http.StatusFound)
+			http.Redirect(w, r, "/device/", http.StatusFound)
 			return
+		}
+		if debug == 2 {
+			fmt.Printf("Query = %s", query)
 		}
 
 		hostquery := hosts[query]
 		err := hostquery.getStatistics("-4h")
 		if err != nil {
-			log.Fatalf("Error with getMetricDetail: %s", err)
+			log.Printf("Error with getStatistics: %s", err)
+			http.Redirect(w, r, "/error", http.StatusFound)
 		}
 
 		title := ""
@@ -148,8 +159,19 @@ func alertText(alert string) string {
 func ctime() string {
 	return time.Now().Format(time.RFC822)
 }
+func validatePath(w http.ResponseWriter, r *http.Request) error {
+	fmt.Println(r.URL.Path)
+	var validPath = regexp.MustCompile("^/device/detail?q=[a-zA-Z0-9_-]+$")
+	if validPath.MatchString(r.URL.Path) {
+		return nil
+	}
+	http.NotFound(w, r)
+	return errors.New("Invalid Page Title")
+}
 
 func main() {
+
+	// Parse config file
 	var hosts []MetricQuery
 	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {
@@ -168,12 +190,23 @@ func main() {
 		namemap[hosts[i].Name] = hosts[i]
 	}
 	// TODO: handle file directory html/random
-	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	http.Handle("/device/html/", http.StripPrefix("/device/html/", http.FileServer(http.Dir("html"))))
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/device/", devHandler(hosts))
-	http.HandleFunc("/device/detail", detailHandler(namemap))
-	http.HandleFunc("/error", errHandler)
+
+	mux := http.NewServeMux()
+	mux.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
+	mux.Handle("/device/html/", http.StripPrefix("/device/html/", http.FileServer(http.Dir("html"))))
+	mux.HandleFunc("/", rootHandler)
+	mux.HandleFunc("/device/", devHandler(hosts))
+	mux.HandleFunc("/device/detail", detailHandler(namemap))
+	mux.HandleFunc("/error", errHandler)
+
+	server := http.Server{
+		Addr:         ":8082",
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      mux,
+	}
 	fmt.Println("Server started at localhost:8082")
-	http.ListenAndServe(":8082", nil)
+	server.ListenAndServe()
+
 }

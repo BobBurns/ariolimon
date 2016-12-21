@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const debug int = 0
+const debug int = 2
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
