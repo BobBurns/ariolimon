@@ -5,6 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +17,8 @@ const debug int = 2
 
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
+var msess *mgo.Session
+var mcoll *mgo.Collection
 
 type Dimension struct {
 	DimName  string `json:"dim_name"`
@@ -25,6 +29,13 @@ type QueryResult struct {
 	Units string
 	Value float64
 	Time  float64
+}
+type QueryStore struct {
+	ID         bson.ObjectId `bson:"_id,omitempty"`
+	UniqueName string
+	Value      float64
+	Unit       string
+	UnixTime   float64
 }
 
 type MetricQuery struct {
@@ -146,6 +157,19 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 	sort.Sort(ByTime(mq.Results))
 	if debug == 1 {
 		fmt.Printf("Get Statistics Result: %v", mq)
+	}
+	// persist result
+	for _, qr := range mq.Results {
+		data := QueryStore{
+			UniqueName: mq.Name,
+			Value:      qr.Value,
+			Unit:       qr.Units,
+			UnixTime:   qr.Time,
+		}
+		err = mcoll.Insert(&data)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return nil

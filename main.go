@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -42,12 +44,16 @@ func init() {
 		Region: aws.String("us-west-2")},
 	)
 	if err != nil {
-		fmt.Println("falied to create session,", err)
-		return
+		panic(err)
 	}
 
 	svc = cloudwatch.New(sess)
 	svc_ec2 = ec2.New(sess)
+
+	msess, err = mgo.Dial("127.0.0.1")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // http handlers
@@ -85,6 +91,28 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	//	log.Fatal("not found")
 	http.Redirect(w, r, "/device/", http.StatusFound)
+}
+func testHandler(w http.ResponseWriter, r *http.Request) {
+	var results []QueryStore
+
+	t := time.Now()
+	to := float64(t.Unix())
+
+	duration, _ := time.ParseDuration("-10m")
+	s := t.Add(duration)
+	from := float64(s.Unix())
+	err := mcoll.Find(bson.M{
+		"$and": []bson.M{bson.M{"uniquename": "apm1_cpuu"},
+			bson.M{"unixtime": bson.M{
+				"$gt": from,
+				"$lt": to,
+			}}}}).Sort("-unixtime").All(&results)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Fprintf(w, "Results: %v", results)
+
 }
 
 func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
@@ -151,6 +179,23 @@ func ctime() string {
 
 func main() {
 
+	defer msess.Close()
+	// initialize database (move to init())
+	msess.SetMode(mgo.Monotonic, true)
+
+	mcoll = msess.DB("aws_metric_store").C("metric_values")
+	index := mgo.Index{
+		Key:        []string{"unixtime", "uniquename"},
+		Unique:     false,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	err := mcoll.EnsureIndex(index)
+	if err != nil {
+		log.Fatalf("ensure index: %v", err)
+	}
+
 	// Parse config file
 	var hosts []MetricQuery
 	data, err := ioutil.ReadFile("thresh.json")
@@ -178,6 +223,7 @@ func main() {
 	sub.HandleFunc("/", devHandler(hosts))
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/error", errHandler)
+	sub.HandleFunc("/test", testHandler)
 
 	server := http.Server{
 		Addr:         ":8082",
