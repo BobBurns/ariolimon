@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -95,23 +96,55 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	var results []QueryStore
 
-	t := time.Now()
-	to := float64(t.Unix())
+	now := time.Now()
+	to := float64(now.Unix())
 
-	duration, _ := time.ParseDuration("-10m")
-	s := t.Add(duration)
+	duration, _ := time.ParseDuration("-2h")
+	s := now.Add(duration)
 	from := float64(s.Unix())
 	err := mcoll.Find(bson.M{
 		"$and": []bson.M{bson.M{"uniquename": "apm1_cpuu"},
 			bson.M{"unixtime": bson.M{
 				"$gt": from,
 				"$lt": to,
-			}}}}).Sort("-unixtime").All(&results)
+			}}}}).All(&results)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Fprintf(w, "Results: %v", results)
+	//	fmt.Printf("Results: %v\n", results)
+	var statistics []QueryResult
+	for _, result := range results {
+		qr := QueryResult{
+			Units: result.Unit,
+			Value: result.Value,
+			Time:  result.UnixTime,
+		}
+		statistics = append(statistics, qr)
+	}
+	sort.Sort(ByTime(statistics))
+
+	title := "Statistics for apm1_cpuu"
+	currentMetric, err := graphMetric(statistics, title)
+	if err != nil {
+		fmt.Fprintf(w, "%q\n", err)
+	}
+	detail := Detail{
+		Host:    "apm1",
+		Service: "cpu-utilization",
+		Time:    time.Unix(int64(currentMetric.Time), 0).Format(time.RFC822),
+		Alert:   "info",
+		Value:   currentMetric.Value,
+		Units:   currentMetric.Units,
+	}
+	//currentMetric.compareThresh(hostquery.Warning, hostquery.Critical)
+	var b bytes.Buffer
+	err = t.ExecuteTemplate(&b, "detail.html", detail)
+	if err != nil {
+		fmt.Fprintf(w, "Error with template: %s ", err)
+		return
+	}
+	b.WriteTo(w)
 
 }
 
@@ -126,7 +159,20 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		err := hostquery.getStatistics("-4h")
+		if err := r.ParseForm(); err != nil {
+			panic(err)
+		}
+		timeframe := r.FormValue("t")
+		switch timeframe {
+		case "4h":
+			timeframe = "-4h"
+		case "24h":
+			timeframe = "-24h"
+		default:
+			timeframe = "-4h"
+		}
+
+		err := hostquery.getStatistics(timeframe)
 		if err != nil {
 			log.Printf("Error with getStatistics: %s", err)
 			http.Redirect(w, r, "/error", http.StatusFound)
@@ -139,7 +185,7 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 			fmt.Fprintf(w, "%q\n", err)
 		}
 		detail := Detail{
-			Host:    hostquery.Host,
+			Host:    hostquery.Name,
 			Service: hostquery.Label,
 			Time:    time.Unix(int64(currentMetric.Time), 0).Format(time.RFC822),
 			Alert:   currentMetric.Alert,
@@ -186,8 +232,8 @@ func main() {
 	mcoll = msess.DB("aws_metric_store").C("metric_values")
 	index := mgo.Index{
 		Key:        []string{"unixtime", "uniquename"},
-		Unique:     false,
-		DropDups:   false,
+		Unique:     true,
+		DropDups:   true,
 		Background: true,
 		Sparse:     true,
 	}

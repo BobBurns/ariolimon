@@ -136,15 +136,17 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 			value = *dp.Minimum
 		}
 
-		if unit == "Bytes" {
-			if value > 1048576.0 {
-				value = value / 104857.0
-				unit = "MB"
-			} else if value > 1028.0 {
-				value = value / 1028.0
-				unit = "KB"
+		/*
+			if unit == "Bytes" {
+				if value > 1048576.0 {
+					value = value / 104857.0
+					unit = "MB"
+				} else if value > 1028.0 {
+					value = value / 1028.0
+					unit = "KB"
+				}
 			}
-		}
+		*/
 		data := QueryResult{
 			Value: value,
 			Units: unit,
@@ -168,7 +170,9 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 		}
 		err = mcoll.Insert(&data)
 		if err != nil {
-			panic(err)
+			if mgo.IsDup(err) == false {
+				fmt.Printf("error in insert: %v\n", err)
+			}
 		}
 	}
 
