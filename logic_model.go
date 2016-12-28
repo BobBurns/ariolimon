@@ -75,9 +75,22 @@ func (a ByLabel) Swap(i, j int) {
 func (a ByLabel) Less(i, j int) bool {
 	return a[i].Label < a[j].Label
 }
+func getPeriod(time string) (period int64) {
+	period = 360
+	switch time {
+	case "-4h":
+		period = 600
+	case "-24h":
+		period = 3600
+	case "-168h":
+		period = 14400
+	}
+	return
+}
 
 func (mq *MetricQuery) getStatistics(timeframe string) error {
 
+	period := getPeriod(timeframe)
 	t := time.Now()
 	if mq.Namespace == "AWS/S3" {
 		timeframe = "-36h"
@@ -94,7 +107,7 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 	params := cloudwatch.GetMetricStatisticsInput{
 		EndTime:    aws.Time(t),
 		Namespace:  aws.String(mq.Namespace),
-		Period:     aws.Int64(360),
+		Period:     aws.Int64(period),
 		StartTime:  aws.Time(s),
 		Dimensions: dims,
 		MetricName: aws.String(mq.Label),

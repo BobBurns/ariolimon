@@ -93,6 +93,15 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	//	log.Fatal("not found")
 	http.Redirect(w, r, "/device/", http.StatusFound)
 }
+func customHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fmt.Println("service: ", r.Form["service"])
+	fmt.Println("start date: ", r.Form["start_date"])
+	fmt.Println("end date: ", r.Form["end_date"])
+	fmt.Println("start time: ", r.Form["start_time"])
+	fmt.Println("end time: ", r.Form["end_time"])
+}
+
 func testHandler(w http.ResponseWriter, r *http.Request) {
 	var results []QueryStore
 
@@ -163,14 +172,20 @@ func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 			panic(err)
 		}
 		timeframe := r.FormValue("t")
-		switch timeframe {
-		case "4h":
-			timeframe = "-4h"
-		case "24h":
-			timeframe = "-24h"
-		default:
+		if timeframe == "" {
 			timeframe = "-4h"
 		}
+		fmt.Println("time ", timeframe)
+		/*
+			switch timeframe {
+			case "4h":
+				timeframe = "-4h"
+			case "24h":
+				timeframe = "-24h"
+			default:
+				timeframe = "-4h"
+			}
+		*/
 
 		err := hostquery.getStatistics(timeframe)
 		if err != nil {
@@ -270,6 +285,7 @@ func main() {
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/error", errHandler)
 	sub.HandleFunc("/test", testHandler)
+	sub.HandleFunc("/custom", customHandler)
 
 	server := http.Server{
 		Addr:         ":8082",
