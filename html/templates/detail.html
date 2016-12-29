@@ -39,6 +39,8 @@
  	    <li><a href="/detail/{{ .Host }}?t=%2d168h">1 week</a></li>
 	   </ul>
 	</div>
+	<br>
+	<h4><a href="/custom">Custom</a></h4>
 	</div>
       <div class="col-md-10">
 	      <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span>{{ .Service}} {{.Value | printf "%.2f" }} {{.Units}} </h3>

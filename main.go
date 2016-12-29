@@ -29,6 +29,9 @@ type Detail struct {
 	Value   float64
 	Units   string
 }
+type Services struct {
+	Service []string
+}
 
 func init() {
 	// parse html template and threshold configuration file
@@ -37,7 +40,7 @@ func init() {
 		"ctime":     ctime,
 	}
 
-	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/root.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/custom.html", "html/templates/custom-img.html"))
 
 	// init cloudwatch session
 
@@ -93,13 +96,87 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	//	log.Fatal("not found")
 	http.Redirect(w, r, "/device/", http.StatusFound)
 }
-func customHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	fmt.Println("service: ", r.Form["service"])
-	fmt.Println("start date: ", r.Form["start_date"])
-	fmt.Println("end date: ", r.Form["end_date"])
-	fmt.Println("start time: ", r.Form["start_time"])
-	fmt.Println("end time: ", r.Form["end_time"])
+func customHandler(service Services) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var results []QueryStore
+		const dateForm = "02 Jan 06 15:04"
+
+		r.ParseForm()
+		servicePost := r.FormValue("service")
+		if servicePost == "" {
+
+			var b bytes.Buffer
+			err := t.ExecuteTemplate(&b, "custom.html", service)
+			if err != nil {
+				fmt.Fprintf(w, "Error with template: %s ", err)
+				return
+			}
+			b.WriteTo(w)
+			return
+		}
+
+		fmt.Println("service: ", r.Form["service"])
+		fmt.Println("start date: ", r.Form["start_date"])
+		fmt.Println("end date: ", r.Form["end_date"])
+		startTimeStr := r.FormValue("start_date")
+		endTimeStr := r.FormValue("end_date")
+
+		loc, err := time.LoadLocation("Local")
+		if err != nil {
+			panic(err)
+		}
+		startTime, err := time.ParseInLocation(dateForm, startTimeStr, loc)
+		if err != nil {
+			panic(err)
+		}
+		endTime, err := time.ParseInLocation(dateForm, endTimeStr, loc)
+		if err != nil {
+			panic(err)
+		}
+		from := startTime.Unix()
+		to := endTime.Unix()
+
+		err = mcoll.Find(bson.M{
+			"$and": []bson.M{bson.M{"uniquename": servicePost},
+				bson.M{"unixtime": bson.M{
+					"$gt": from,
+					"$lt": to,
+				}}}}).All(&results)
+		if err != nil {
+			panic(err)
+		}
+		if len(results) == 0 {
+			fmt.Fprintf(w, "NO results to display!\n")
+			return
+		}
+
+		//	fmt.Printf("Results: %v\n", results)
+		var statistics []QueryResult
+		for _, result := range results {
+			qr := QueryResult{
+				Units: result.Unit,
+				Value: result.Value,
+				Time:  result.UnixTime,
+			}
+			statistics = append(statistics, qr)
+		}
+		sort.Sort(ByTime(statistics))
+
+		title := "Statistics for " + servicePost
+		_, err = graphMetric(statistics, title)
+		if err != nil {
+			fmt.Fprintf(w, "%q\n", err)
+		}
+
+		var b bytes.Buffer
+		err = t.ExecuteTemplate(&b, "custom-img.html", service)
+		if err != nil {
+			fmt.Fprintf(w, "Error with template: %s ", err)
+			return
+		}
+		b.WriteTo(w)
+
+	}
 }
 
 func testHandler(w http.ResponseWriter, r *http.Request) {
@@ -271,9 +348,13 @@ func main() {
 		fmt.Println(hosts)
 	}
 	// make a map of hostnames to MetricQuery
+	// and array of servicenames for custom graph
+
+	templateService := Services{}
 	var namemap = make(map[string]MetricQuery)
 	for i, _ := range hosts {
 		namemap[hosts[i].Name] = hosts[i]
+		templateService.Service = append(templateService.Service, hosts[i].Name)
 	}
 
 	router := mux.NewRouter()
@@ -285,7 +366,7 @@ func main() {
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/error", errHandler)
 	sub.HandleFunc("/test", testHandler)
-	sub.HandleFunc("/custom", customHandler)
+	sub.HandleFunc("/custom", customHandler(templateService))
 
 	server := http.Server{
 		Addr:         ":8082",

@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="refresh" content="30" >
+    <!--    <meta http-equiv="refresh" content="30" > -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>Ariolimon</title>
     <!-- Bootstrap -->
-    <link href="../bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="html/bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -24,38 +24,34 @@
     <div class="container">
       <div class="row">
       <div class="col-md-2">
+        <a href="/" class="btn btn-default btn-md" aria-label="back">
+	    <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+        </a>
     	 </div>
       <form action="/custom" id="myform" method="post">
       <div class="col-md-4">
 	 <div class="form-group row">
 		   <label for="sel1">Service</label>
 			   <select name="service" class="form-control" id="sel1">
-		 		 <option value="apm1_cpuu">apm1_cpuu</option>
-				 <option value="apm1_networkin">apm1_networkin</option>
-				 <option value="apm1_netpacketsout">apm1_netpacketsout</option>
-				 <option value="apm2_cpuu">apm2_cpuu</option>
+				 {{ range $_, $service := .Service }}
+				 <option value="{{ $service }}">{{ $service }}</option>
+				 {{ end }}
 			   </select>
 	 </div>
 	 <div class="form-group row">
-	   <label for="startDate" class="col-form-label">start date</label>
-	   <input type="datetime-local" class="form-control" name="start_date" required pattern="\d{1,2}/\d{1,2}/\d{4}" placeholder="dd/mm/yyyy"> 
+	   <label for="startDate" class="col-form-label">start time (e.g. 12 Dec 16 15:04)</label>
+	   <input type="datetime-local" class="form-control" name="start_date" placeholder="02 Jan 06 15:04" required pattern="\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}"> 
 	 </div>
 	 <div class="form-group row">
-	   <label for="endDate" class="col-form-label">end date</label>
-	   <input type="datetime-local" class="form-control" name="end_date" required pattern="\d{1,2}/\d{1,2}/\d{4}" placeholder="dd/mm/yyyy">
-	 </div>
-	 <div class="form-group row">
-	   <label for="startTime" class="col-form-label">start time</label>
-	   <input type="datetime-local" class="form-control" name="start_time" required pattern="\d{1,2}:\d{1,2}:\d{1,2}" placeholder="10:45:00"> 
-	 </div>
-	 <div class="form-group row">
-	   <label for="endTime" class="col-form-label">end time</label>
-	   <input type="datetime-local" class="form-control" name="end_time" required pattern="\d{1,2}:\d{1,2}:\d{1,2}" placeholder="10:45:00">
-	 </div>
+	   <label for="endDate" class="col-form-label">end time</label>
+	   <input type="datetime-local" class="form-control" name="end_date" placeholder="02 Jan 16 15:10" required pattern="\d{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}"> 
+	 <br>
 	 <button type="submit" class="btn btn-primary">Submit</input>
       </div>
       </form>
 
+      <div><img src="/html/currentgraph.png" class="img-fluid" alt="graph"></div>
+	 </div>
       </div>
     </div>
 
@@ -63,6 +59,6 @@
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="../bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+    <script src="html/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
   </body>
 </html>
