@@ -19,7 +19,19 @@ var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
 var msess *mgo.Session
 var mcoll *mgo.Collection
+var hosts []MetricQuery
 
+type Detail struct {
+	Host    string
+	Time    string
+	Service string
+	Alert   string
+	Value   float64
+	Units   string
+}
+type Services struct {
+	Service []string
+}
 type Dimension struct {
 	DimName  string `json:"dim_name"`
 	DimValue string `json:"dim_value"`
@@ -149,17 +161,6 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 			value = *dp.Minimum
 		}
 
-		/*
-			if unit == "Bytes" {
-				if value > 1048576.0 {
-					value = value / 104857.0
-					unit = "MB"
-				} else if value > 1028.0 {
-					value = value / 1028.0
-					unit = "KB"
-				}
-			}
-		*/
 		data := QueryResult{
 			Value: value,
 			Units: unit,
@@ -232,4 +233,23 @@ func (qr *QueryResult) compareThresh(warn, crit string) {
 		qr.Alert = "warning"
 	}
 
+}
+
+// function to handle template output .Alert text
+func alertText(alert string) string {
+	switch alert {
+	case "danger":
+		return "Critical"
+	case "warning":
+		return "Warning"
+	case "success":
+		return "OK"
+	case "info":
+		return "Unknown"
+	}
+
+	return "Unknown"
+}
+func ctime() string {
+	return time.Now().Format(time.RFC822)
 }
