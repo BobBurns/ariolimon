@@ -8,9 +8,12 @@ To use, you need an [AWS](https://aws.amazon.com/) EC2 instance and the [AWS CLI
 
 If you don't already have it, you can download and install Go from [here](https://golang.org/dl/).
 
+Install dependencies
+```go get -u github.com/aws/aws-sdk-go/... gopkg.in/mgo.v2 github.com/gorilla/mux github.com/gonum/plot/...```
+
 Clone this repo inside your $GOPATH.
 
-Change the thresh2.json file to suit your needs.
+Change the thresh.json file to suit your needs.
 
 Run ```go build ``` and execute ```./adev```
 
