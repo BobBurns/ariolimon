@@ -8,6 +8,8 @@ To use, you need an [AWS](https://aws.amazon.com/) EC2 instance and the [AWS CLI
 
 If you don't already have it, you can download and install Go from [here](https://golang.org/dl/).
 
+Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/)
+
 Install dependencies
 
 ```go get github.com/aws/aws-sdk-go/... gopkg.in/mgo.v2 github.com/gorilla/mux github.com/gonum/plot/...```
