@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"sort"
@@ -14,12 +13,6 @@ import (
 )
 
 const debug int = 2
-
-var svc *cloudwatch.CloudWatch
-var svc_ec2 *ec2.EC2
-var msess *mgo.Session
-var mcoll *mgo.Collection
-var hosts []MetricQuery
 
 type Detail struct {
 	Host    string
@@ -60,44 +53,6 @@ type MetricQuery struct {
 	Warning    string      `json:"warning"`
 	Critical   string      `json:"critical"`
 	Results    []QueryResult
-}
-
-// sort functions
-type ByLabel []MetricQuery
-type ByTime []QueryResult
-
-func (a ByTime) Len() int {
-	return len(a)
-}
-func (a ByTime) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-func (a ByTime) Less(i, j int) bool {
-	return a[i].Time < a[j].Time
-}
-
-func (a ByLabel) Len() int {
-	return len(a)
-}
-
-func (a ByLabel) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
-func (a ByLabel) Less(i, j int) bool {
-	return a[i].Label < a[j].Label
-}
-func getPeriod(time string) (period int64) {
-	period = 360
-	switch time {
-	case "-4h":
-		period = 600
-	case "-24h":
-		period = 3600
-	case "-168h":
-		period = 14400
-	}
-	return
 }
 
 func (mq *MetricQuery) getStatistics(timeframe string) error {
@@ -233,23 +188,4 @@ func (qr *QueryResult) compareThresh(warn, crit string) {
 		qr.Alert = "warning"
 	}
 
-}
-
-// function to handle template output .Alert text
-func alertText(alert string) string {
-	switch alert {
-	case "danger":
-		return "Critical"
-	case "warning":
-		return "Warning"
-	case "success":
-		return "OK"
-	case "info":
-		return "Unknown"
-	}
-
-	return "Unknown"
-}
-func ctime() string {
-	return time.Now().Format(time.RFC822)
 }
