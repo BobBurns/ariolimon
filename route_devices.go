@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+//query amazon and display device statistics
 func devHandler(querys []MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for i, _ := range querys {

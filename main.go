@@ -29,6 +29,7 @@ func main() {
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/custom", customHandler(templateService))
 
+	// IdleTimeout requires go1.8
 	server := http.Server{
 		Addr:         ":8082",
 		ReadTimeout:  5 * time.Second,

@@ -130,6 +130,8 @@ func alertText(alert string) string {
 
 	return "Unknown"
 }
+
+//template function
 func ctime() string {
 	return time.Now().Format(time.RFC822)
 }

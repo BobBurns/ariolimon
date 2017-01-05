@@ -25,10 +25,6 @@ type Detail struct {
 type Services struct {
 	Service []string
 }
-type Dimension struct {
-	DimName  string `json:"dim_name"`
-	DimValue string `json:"dim_value"`
-}
 type QueryResult struct {
 	Alert string
 	Units string
@@ -53,6 +49,10 @@ type MetricQuery struct {
 	Warning    string      `json:"warning"`
 	Critical   string      `json:"critical"`
 	Results    []QueryResult
+}
+type Dimension struct {
+	DimName  string `json:"dim_name"`
+	DimValue string `json:"dim_value"`
 }
 
 func (mq *MetricQuery) getStatistics(timeframe string) error {
