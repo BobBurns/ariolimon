@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"os"
 	"time"
 )
 
@@ -43,7 +44,26 @@ func init() {
 	svc_ec2 = ec2.New(sess)
 
 	// init mongo db
-	msess, err = mgo.Dial("127.0.0.1")
+	// get db config
+	dbData, err := os.Open("configdb.json")
+	if err != nil {
+		log.Fatalf("open configdb: %v", err)
+	}
+	configdb := struct {
+		Host string
+		User string
+		Pass string
+		Db   string
+	}{}
+
+	decoder := json.NewDecoder(dbData)
+	err = decoder.Decode(&configdb)
+	if err != nil {
+		log.Fatalf("decode: %v", err)
+	}
+	dburl := configdb.User + ":" + configdb.Pass + "@" + configdb.Host + "/" + configdb.Db
+
+	msess, err = mgo.Dial(dburl)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +81,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("ensure index: %v", err)
 	}
-	// Parse config file
+	// Parse threshold file
 	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {
 		log.Fatalf("readfile: %v", err)
