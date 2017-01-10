@@ -8,7 +8,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>Ariolimon</title>
     <!-- Bootstrap -->
-    <link href="../bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="html/bootstrap-3.3.7-dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -29,17 +29,27 @@
         <div class="well">
           <form class="form-signin" action="/login" method="post">
 	  <h2 class="form-signin-heading">Authentication Required</h2>
+	  {{if not .IsValid}}
 	  <div class="alert alert-danger" role="alert">Invalid Credentials!</div>
+	  {{end}}
+	  {{if .IsFirst}}
+	  <p>Please enter new password</p>
+	  <br>
+	  <label for="inputUsername" class="sr-only">User Name</label>
+	  <input type="text" id="inputUser" name="username" class="form-control" value="{{.Name}}">
+	  <br>
+	  <label for="inputNew" class="sr-only">New Password</label>
+	  <input type="password" name="newpass" class="form-control" placeholder="New Password" required>
+	  <label for="inputNew" class="sr-only">Re-enter New Password</label>
+	  <input type="password" name="repass" class="form-control" placeholder="Re-enter New Password" required>
+	  <br>
+	  {{else}}
 	  <label for="inputUsername" class="sr-only">User Name</label>
 	  <input type="text" id="inputUser" name="username" class="form-control" placeholder="User Name" required autofocus>
 	  <label for="inputPassword" class="sr-only">Password</label>
 	  <input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required>
 	  <br>
-	  <label for="inputNew" class="sr-only">New Password</label>
-	  <input type="password" name="newpass" class="form-control" placeholder="New Password" required>
-	  <label for="inputNew" class="sr-only">Re-enter New Password</label>
-	  <input type="password" name="newpass" class="form-control" placeholder="Re-enter New Password" required>
-	  <br>
+	  {{end}}
           <button class="btn btn-md btn-primary btn-block" type="submit">Sign in</button>
           </form>
 
@@ -52,6 +62,6 @@
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="../bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+    <script src="html/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
   </body>
 </html>

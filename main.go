@@ -28,6 +28,7 @@ func main() {
 	sub.HandleFunc("/", devHandler(hosts))
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/custom", customHandler(templateService))
+	sub.HandleFunc("/login", loginHandler)
 
 	// IdleTimeout requires go1.8
 	server := http.Server{

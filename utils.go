@@ -20,6 +20,7 @@ var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
 var msess *mgo.Session
 var mcoll *mgo.Collection
+var dbcoll *mgo.Collection
 var hosts []MetricQuery
 
 func init() {
@@ -30,7 +31,7 @@ func init() {
 	}
 
 	// parse html template and threshold configuration file
-	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/custom.html", "html/templates/custom-img.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/custom.html", "html/templates/custom-img.html", "html/templates/login.html"))
 
 	// init cloudwatch session
 	sess, err := session.NewSession(&aws.Config{
@@ -69,6 +70,7 @@ func init() {
 	}
 	msess.SetMode(mgo.Monotonic, true)
 
+	// connection to metric_values
 	mcoll = msess.DB("aws_metric_store").C("metric_values")
 	index := mgo.Index{
 		Key:        []string{"unixtime", "uniquename"},
@@ -81,6 +83,21 @@ func init() {
 	if err != nil {
 		log.Fatalf("ensure index: %v", err)
 	}
+
+	// set up connection to user collection
+	dbcoll = msess.DB("aws_metric_store").C("aws_usr")
+	usrindex := mgo.Index{
+		Key:        []string{"name"},
+		Unique:     true,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	err = dbcoll.EnsureIndex(usrindex)
+	if err != nil {
+		log.Fatalf("ensure index: %v", err)
+	}
+
 	// Parse threshold file
 	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {
