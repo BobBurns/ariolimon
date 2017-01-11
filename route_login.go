@@ -21,72 +21,76 @@ type User struct {
 var currentSession bool
 
 func updatePassword(pass string) {
+	fmt.Println("updatePassword!")
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 
+	redirect := false
+	loginUser := User{}
 	var b bytes.Buffer
 	r.ParseForm()
-	currentUser := User{
-		Name:     r.FormValue("username"),
-		Password: r.FormValue("password"),
-	}
-	if currentUser.Name == "" && currentUser.Password == "" && r.FormValue("newpass") == "" && r.FormValue("repass") == "" {
-		currentUser.IsValid = true
-		err := t.ExecuteTemplate(&b, "login.html", currentUser)
-		if err != nil {
-			fmt.Fprintf(w, "Error with template: %s ", err)
-			return
-		}
-		b.WriteTo(w)
-		return
-	}
-	quser := User{}
-	err := dbcoll.Find(bson.M{"name": currentUser.Name}).One(&quser)
-	if err != nil {
-		errString, _ := err.(*mgo.LastError)
-		fmt.Printf("mgo err: %s", errString.Err)
-		if errString.Err != "not found" {
-			panic(err)
-		}
-	}
+	userName := r.FormValue("username")
+	userPass := r.FormValue("password")
 
-	if quser.Name == "" {
-		quser.IsValid = false
+	if userName == "" && userPass == "" {
+		loginUser.IsValid = true
 	} else {
-		passData := []byte(currentUser.Password)
+
+		quser := User{}
+		err := dbcoll.Find(bson.M{"name": userName}).One(&quser)
+		if errString, ok := err.(*mgo.LastError); ok {
+			//fmt.Printf("mgo err: %s", errString.Err)
+			if errString.Err != "not found" {
+				panic(err)
+			} else {
+				loginUser.IsValid = false
+			}
+		}
+
+		passData := []byte(userPass)
 		passString := fmt.Sprintf("%x", sha1.Sum(passData))
-		if quser.Name == currentUser.Name && quser.Password == passString {
+		if quser.Name == userName && quser.Password == passString {
 			if quser.IsFirst == false {
 				// TODO handle session cookie
 				currentSession = true
-				http.Redirect(w, r, "/devices", http.StatusFound)
+				redirect = true
+			} else {
+				loginUser.Name = quser.Name
+				loginUser.IsValid = true
+				loginUser.IsFirst = true
 			}
-			newPass := r.FormValue("newpass")
-			rePass := r.FormValue("repass")
-			if newPass != "" && rePass != "" {
-				// TODO store new password in db
-				if newPass == rePass {
-
-					updatePassword(newPass)
-					currentSession = true
-					http.Redirect(w, r, "/devices", http.StatusFound)
-				} else {
-					quser.Reenter = true
-				}
-			}
-			// first user password is correct --> display new password
-			quser.IsValid = true
-		} else {
-			quser.IsValid = false
 		}
+		newPass := r.FormValue("newpass")
+		rePass := r.FormValue("repass")
 
+		if newPass != "" && rePass != "" {
+			// TODO store new password in db
+			if newPass == rePass {
+
+				updatePassword(newPass)
+				currentSession = true
+				redirect = true
+			} else {
+				loginUser.Name = quser.Name
+				loginUser.Reenter = true
+				loginUser.IsValid = false
+				loginUser.IsFirst = true
+			}
+
+		}
 	}
+	if redirect {
+		http.Redirect(w, r, "/devices", http.StatusFound)
+		return
+	}
+	// first user password is correct --> display new password
+
 	// TODO code to look up user from data base and validate password
 	// handle first time sign on
 	// handle save password and generate session cookie
 
-	err = t.ExecuteTemplate(&b, "login.html", quser)
+	err := t.ExecuteTemplate(&b, "login.html", loginUser)
 	if err != nil {
 		fmt.Fprintf(w, "Error with template: %s ", err)
 		return

@@ -9,6 +9,10 @@ import (
 )
 
 // http handlers
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/login", http.StatusFound)
+	return
+}
 
 func main() {
 
@@ -25,7 +29,9 @@ func main() {
 	router := mux.NewRouter()
 	sub := router.Host("localhost").Subrouter()
 	sub.PathPrefix("/html/").Handler(http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	sub.HandleFunc("/", devHandler(hosts))
+	sub.HandleFunc("/", rootHandler)
+	sub.HandleFunc("/devices", devHandler(hosts))
+
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))
 	sub.HandleFunc("/custom", customHandler(templateService))
 	sub.HandleFunc("/login", loginHandler)
