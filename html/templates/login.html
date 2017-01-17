@@ -36,10 +36,10 @@
 	  <p>Please enter new password</p>
 	  <br>
 	  <label for="inputUsername" class="sr-only">User Name</label>
-	  <input type="text" id="inputUser" name="username" class="form-control" value="{{.Name}}">
+	  <input type="text" id="inputUser" name="username" class="form-control" value="{{.Name}}" required>
 	  <br>
 	  <label for="inputNew" class="sr-only">New Password</label>
-	  <input type="password" name="newpass" class="form-control" placeholder="New Password" required>
+	  <input type="password" name="newpass" class="form-control" placeholder="New Password" required autofocus>
 	  <label for="inputNew" class="sr-only">Re-enter New Password</label>
 	  <input type="password" name="repass" class="form-control" placeholder="Re-enter New Password" required>
 	  <br>

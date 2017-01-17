@@ -30,8 +30,13 @@ type Session struct {
 	StartTime int64         `bson:"start_time"`
 }
 
-func (sess Session) Check() bool {
-	err := sesscoll.Find(bson.M{"cookie": sess.Cookie}).One(&sess)
+func (sess *Session) DeleteSession() error {
+	err := sesscoll.Remove(bson.M{"cookie": sess.Cookie})
+	return err
+}
+
+func (sess *Session) Check() bool {
+	err := sesscoll.Find(bson.M{"cookie": sess.Cookie}).One(sess)
 	if err == nil {
 		return true
 		if debug == 2 {
@@ -69,8 +74,10 @@ func createSession(w http.ResponseWriter, r *http.Request, name string) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
+	if debug == 2 {
+		fmt.Println("create Session")
+	}
 
-	http.Redirect(w, r, "/devices", http.StatusFound)
 }
 
 func webSession(w http.ResponseWriter, r *http.Request) error {
@@ -183,11 +190,26 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	b.WriteTo(w)
 
 }
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("_aricookie")
+	if err == nil {
+		sess := Session{
+			Cookie: cookie.Value,
+		}
+		err = sess.DeleteSession()
+		if err == nil || err.Error() == "not found" {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+	}
+	fmt.Println(err)
+	http.Redirect(w, r, "/html/error.html", http.StatusInternalServerError)
+}
 
 func index(w http.ResponseWriter, r *http.Request) {
 	err := webSession(w, r)
 	if err != nil {
-		loginHandler(w, r)
+		http.Redirect(w, r, "/login", http.StatusFound)
 	} else {
 		http.Redirect(w, r, "/devices", http.StatusFound)
 	}

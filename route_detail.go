@@ -75,6 +75,10 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 // custom detail from db
 func customHandler(service Services) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		err := webSession(w, r)
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusFound)
+		}
 		var results []QueryStore
 		const dateForm = "02 Jan 06 15:04"
 
@@ -103,7 +107,7 @@ func customHandler(service Services) http.HandlerFunc {
 		from := startTime.Unix()
 		to := endTime.Unix()
 
-		err := mcoll.Find(bson.M{
+		err = mcoll.Find(bson.M{
 			"$and": []bson.M{bson.M{"uniquename": servicePost},
 				bson.M{"unixtime": bson.M{
 					"$gt": from,
@@ -149,6 +153,10 @@ func customHandler(service Services) http.HandlerFunc {
 // detail handler
 func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		err := webSession(w, r)
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusFound)
+		}
 
 		vars := mux.Vars(r)
 		query := vars["sd"]

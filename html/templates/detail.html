@@ -43,7 +43,7 @@
 	<h4><a href="/custom">Custom</a></h4>
 	</div>
       <div class="col-md-10">
-	      <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span>{{ .Service}} {{.Value | printf "%.2f" }} {{.Units}} </h3>
+	      <h3><span class="label label-{{ .Alert }}">{{ .Alert | alertText }}</span> {{ .Service}} {{.Value | printf "%.2f" }} {{.Units}} </h3>
       <h3><a href="https://dco-prod-tools-1.ucsc.edu/confluence/display/DCUT/Escalations+-+AIS" target="_blank">On Call Escalation</a></h3>
       <br>
       <br>
