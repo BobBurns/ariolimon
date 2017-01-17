@@ -21,6 +21,7 @@ var svc_ec2 *ec2.EC2
 var msess *mgo.Session
 var mcoll *mgo.Collection
 var dbcoll *mgo.Collection
+var sesscoll *mgo.Collection
 var hosts []MetricQuery
 
 func init() {
@@ -98,6 +99,19 @@ func init() {
 		log.Fatalf("ensure index: %v", err)
 	}
 
+	// set up connection to session collection
+	sesscoll = msess.DB("aws_metric_store").C("web_session")
+	sessindex := mgo.Index{
+		Key:        []string{"cookie"},
+		Unique:     true,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	err = sesscoll.EnsureIndex(sessindex)
+	if err != nil {
+		log.Fatalf("ensure index: %v", err)
+	}
 	// Parse threshold file
 	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {

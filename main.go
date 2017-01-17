@@ -29,7 +29,7 @@ func main() {
 	router := mux.NewRouter()
 	sub := router.Host("localhost").Subrouter()
 	sub.PathPrefix("/html/").Handler(http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	sub.HandleFunc("/", rootHandler)
+	sub.HandleFunc("/", index)
 	sub.HandleFunc("/devices", devHandler(hosts))
 
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler(namemap))

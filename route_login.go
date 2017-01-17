@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"io"
 	"net/http"
+	"time"
 )
 
 type User struct {
@@ -15,13 +20,81 @@ type User struct {
 	Name     string        `bson:"name"`
 	Password string        `bson:"password"`
 	IsValid  bool
-	Reenter  bool
+	Error    string
+}
+
+type Session struct {
+	ID        bson.ObjectId `bson:"_id,omitempty"`
+	Cookie    string        `bson:"cookie"`
+	UserName  string        `bson:"username"`
+	StartTime int64         `bson:"start_time"`
+}
+
+func (sess Session) Check() bool {
+	err := sesscoll.Find(bson.M{"cookie": sess.Cookie}).One(&sess)
+	if err == nil {
+		return true
+		if debug == 2 {
+			fmt.Println("session check!")
+		}
+	}
+	return false
 }
 
 var currentSession bool
 
-func updatePassword(pass string) {
+func (sess *Session) GenerateCookie() {
+	b := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		panic("Error generating cookie")
+	}
+
+	sess.Cookie = base64.URLEncoding.EncodeToString(b)
+}
+func (sess *Session) Save() error {
+	sess.StartTime = time.Now().Unix()
+	err := sesscoll.Insert(sess)
+	return err
+
+}
+
+func createSession(w http.ResponseWriter, r *http.Request, name string) {
+
+	sess := Session{UserName: name}
+	sess.GenerateCookie()
+	sess.Save()
+	cookie := http.Cookie{
+		Name:     "_aricookie",
+		Value:    sess.Cookie,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
+	http.Redirect(w, r, "/devices", http.StatusFound)
+}
+
+func webSession(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie("_aricookie")
+	fmt.Println("cookie ", cookie)
+	if err == nil {
+		sess := Session{Cookie: cookie.Value}
+		if ok := sess.Check(); !ok {
+			err = errors.New("Invalid session")
+		}
+	}
+	return err
+}
+
+func updatePassword(name, pass string) error {
 	fmt.Println("updatePassword!")
+	userq := bson.M{"name": name}
+	password := fmt.Sprintf("%x", sha1.Sum([]byte(pass)))
+	change := bson.M{"$set": bson.M{"password": password, "is_first": false}}
+	err := dbcoll.Update(userq, change)
+	if err != nil {
+		return errors.New("password Error")
+	}
+	return nil
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +105,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	userName := r.FormValue("username")
 	userPass := r.FormValue("password")
+	quser := User{}
 
 	if userName == "" && userPass == "" {
 		loginUser.IsValid = true
 	} else {
 
-		quser := User{}
 		err := dbcoll.Find(bson.M{"name": userName}).One(&quser)
 		if errString, ok := err.(*mgo.LastError); ok {
 			//fmt.Printf("mgo err: %s", errString.Err)
@@ -68,19 +141,31 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			// TODO store new password in db
 			if newPass == rePass {
 
-				updatePassword(newPass)
-				currentSession = true
-				redirect = true
+				err = updatePassword(userName, newPass)
+				if err == nil {
+					currentSession = true
+					redirect = true
+				} else {
+					loginUser = User{
+						Name:    quser.Name,
+						IsValid: false,
+						IsFirst: true,
+						Error:   "Cannot update Password!",
+					}
+				}
 			} else {
-				loginUser.Name = quser.Name
-				loginUser.Reenter = true
-				loginUser.IsValid = false
-				loginUser.IsFirst = true
+				loginUser = User{
+					Name:    quser.Name,
+					IsValid: false,
+					IsFirst: true,
+					Error:   "Passwords must Match!",
+				}
 			}
 
 		}
 	}
 	if redirect {
+		createSession(w, r, quser.Name)
 		http.Redirect(w, r, "/devices", http.StatusFound)
 		return
 	}
@@ -97,4 +182,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	b.WriteTo(w)
 
+}
+
+func index(w http.ResponseWriter, r *http.Request) {
+	err := webSession(w, r)
+	if err != nil {
+		loginHandler(w, r)
+	} else {
+		http.Redirect(w, r, "/devices", http.StatusFound)
+	}
 }
