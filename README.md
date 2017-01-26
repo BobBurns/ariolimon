@@ -18,8 +18,8 @@ Clone this repo inside your $GOPATH.
 Change the thresh.json file to suit your needs.
 
 Add a configdb.json file in the main directory that has database authentication info
-```{
 
+```{
   "Host"	: "127.0.0.1",
   "User"	: "user",
   "Pass"	: "password",
