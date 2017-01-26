@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const debug int = 2
+const debug int = 0
 
 type Detail struct {
 	Host    string

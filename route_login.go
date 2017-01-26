@@ -82,7 +82,9 @@ func createSession(w http.ResponseWriter, r *http.Request, name string) {
 
 func webSession(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("_aricookie")
-	fmt.Println("cookie ", cookie)
+	if debug == 2 {
+		fmt.Println("cookie ", cookie)
+	}
 	if err == nil {
 		sess := Session{Cookie: cookie.Value}
 		if ok := sess.Check(); !ok {
@@ -93,7 +95,9 @@ func webSession(w http.ResponseWriter, r *http.Request) error {
 }
 
 func updatePassword(name, pass string) error {
-	fmt.Println("updatePassword!")
+	if debug == 2 {
+		fmt.Println("updatePassword!")
+	}
 	userq := bson.M{"name": name}
 	password := fmt.Sprintf("%x", sha1.Sum([]byte(pass)))
 	change := bson.M{"$set": bson.M{"password": password, "is_first": false}}
