@@ -24,8 +24,7 @@ Add a configdb.json file in the main directory that has database authentication 
   "User"	: "user",
   "Pass"	: "password",
   "Db"		: "aws_metric_store"
-}
-```
+}```
 
 ```go build new_user.go``` in new_user directory and run ```./new_user -u user <-p password>``` 
 
