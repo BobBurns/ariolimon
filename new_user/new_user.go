@@ -43,7 +43,7 @@ func main() {
 	// init db and add user
 
 	// get db config
-	dbData, err := os.Open("configdb.json")
+	dbData, err := os.Open("../configdb.json")
 	if err != nil {
 		panic(err)
 	}

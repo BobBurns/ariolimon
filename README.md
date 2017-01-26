@@ -7,7 +7,7 @@ To use, you need an [AWS](https://aws.amazon.com/) EC2 instance and the [AWS CLI
 
 If you don't already have it, you can download and install Go from [here](https://golang.org/dl/).
 
-Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/)
+Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/). Set up and run authenticated!
 
 Install dependencies
 
@@ -16,6 +16,18 @@ Install dependencies
 Clone this repo inside your $GOPATH.
 
 Change the thresh.json file to suit your needs.
+
+Add a configdb.json file in the main directory that has database authentication info
+```{
+
+  "Host"	: "127.0.0.1",
+  "User"	: "user",
+  "Pass"	: "password",
+  "Db"		: "aws_metric_store"
+}
+```
+
+```go build new_user.go``` in new_user directory and run ```./new_user -u user <-p password>``` 
 
 Run ```go build ``` and execute ```./adev```
 
