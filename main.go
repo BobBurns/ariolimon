@@ -38,8 +38,8 @@ func main() {
 		Addr:         ":8082",
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      router,
+		//		IdleTimeout:  120 * time.Second,
+		Handler: router,
 	}
 	fmt.Println("Server started at localhost:8082")
 	log.Fatal(server.ListenAndServe())

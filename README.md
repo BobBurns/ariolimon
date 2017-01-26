@@ -4,10 +4,12 @@ A go web application to query Amazon web services Metrics and visually warn if c
 
 ##**Installation**
 To use, you need an [AWS](https://aws.amazon.com/) EC2 instance and the [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/installing.html) with your [credentials](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html).
+Ensure there is ~/.aws/config and ~/.aws/credentials set correctly
 
 If you don't already have it, you can download and install Go from [here](https://golang.org/dl/).
 
-Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/). Set up and run authenticated!
+Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/). Set up and run authenticated! [Enable Auth](https://docs.mongodb.com/manual/tutorial/enable-authentication/)
+Create a user with readWrite roles for aws\_metric\_store
 
 Install dependencies
 
@@ -25,6 +27,8 @@ Add a configdb.json file in the main directory that has database authentication 
   "Pass"	: "password",
   "Db"		: "aws_metric_store"
 }```
+
+Note if you are running go 1.8 comment out line 41 in main.go
 
 ```go build new_user.go``` in new_user directory and run ```./new_user -u user <-p password>``` 
 
