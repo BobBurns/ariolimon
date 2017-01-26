@@ -8,10 +8,11 @@ Ensure there is ~/.aws/config and ~/.aws/credentials set correctly
 
 If you don't already have it, you can download and install Go from [here](https://golang.org/dl/).
 
-Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/). Set up and run authenticated! [Enable Auth](https://docs.mongodb.com/manual/tutorial/enable-authentication/)
+Also, you'll need [MongoDB](https://docs.mongodb.com/manual/installation/). Set up to run authenticated! See [Enable Auth](https://docs.mongodb.com/manual/tutorial/enable-authentication/) 
+
 Create a user with readWrite roles for aws\_metric\_store
 
-Install dependencies
+**Install dependencies**
 
 ```go get github.com/aws/aws-sdk-go/... gopkg.in/mgo.v2 github.com/gorilla/mux github.com/gonum/plot/...```
 
@@ -29,6 +30,8 @@ Add a configdb.json file in the main directory that has database authentication 
 }```
 
 Note if you are running go 1.8 comment out line 41 in main.go
+
+Start database server ```mongod --auth```
 
 ```go build new_user.go``` in new_user directory and run ```./new_user -u user <-p password>``` 
 
