@@ -28,7 +28,7 @@ Add a configdb.json file in the main directory that has database authentication 
 
 ```go build new_user.go``` in new_user directory and run ```./new_user -u user <-p password>``` 
 
-Run ```go build ``` and execute ```./adev```
+Run ```go build ``` and execute ```./ariolimon```
 
 Open a web browser and navigate to localhost:8082
 
