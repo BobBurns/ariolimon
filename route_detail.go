@@ -73,140 +73,153 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 }
 
 // custom detail from db
-func customHandler(service Services) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := webSession(w, r)
-		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusFound)
-		}
-		var results []QueryStore
-		const dateForm = "02 Jan 06 15:04"
+func customHandler(w http.ResponseWriter, r *http.Request) {
+	err := webSession(w, r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
 
-		r.ParseForm()
-		// check if form is posted with timeframe and metric query info
-		servicePost := r.FormValue("service")
-		if servicePost == "" {
+	// dynamically load thresholds
+	var hosts []MetricQuery
+	hosts = getThresholds()
+	templateService := Services{}
+	for _, host := range hosts {
+		templateService.Service = append(templateService.Service, host.Name)
+	}
 
-			// if no form don't display metric image
-			var b bytes.Buffer
-			err := t.ExecuteTemplate(&b, "custom.html", service)
-			if err != nil {
-				fmt.Fprintf(w, "Error with template: %s ", err)
-				return
-			}
-			b.WriteTo(w)
-			return
-		}
+	// check if form is posted with timeframe and metric query info
+	r.ParseForm()
+	servicePost := r.FormValue("service")
+	if servicePost == "" {
 
-		// parse time info
-		startTimeStr := r.FormValue("start_date")
-		endTimeStr := r.FormValue("end_date")
-		loc, _ := time.LoadLocation("Local")
-		startTime, _ := time.ParseInLocation(dateForm, startTimeStr, loc)
-		endTime, _ := time.ParseInLocation(dateForm, endTimeStr, loc)
-		from := startTime.Unix()
-		to := endTime.Unix()
-
-		err = mcoll.Find(bson.M{
-			"$and": []bson.M{bson.M{"uniquename": servicePost},
-				bson.M{"unixtime": bson.M{
-					"$gt": from,
-					"$lt": to,
-				}}}}).All(&results)
-		if err != nil {
-			http.Redirect(w, r, "/html/error.html", http.StatusFound)
-			return
-		}
-		if len(results) == 0 {
-			http.Redirect(w, r, "/html/nodata.html", http.StatusFound)
-			return
-		}
-
-		var statistics []QueryResult
-		for _, result := range results {
-			qr := QueryResult{
-				Units: result.Unit,
-				Value: result.Value,
-				Time:  result.UnixTime,
-			}
-			statistics = append(statistics, qr)
-		}
-		sort.Sort(ByTime(statistics))
-
-		title := "Statistics for " + servicePost
-		_, err = graphMetric(statistics, title)
-		if err != nil {
-			fmt.Fprintf(w, "%q\n", err)
-		}
-
+		// if no form don't display metric image
 		var b bytes.Buffer
-		err = t.ExecuteTemplate(&b, "custom-img.html", service)
+		err := t.ExecuteTemplate(&b, "custom.html", templateService)
 		if err != nil {
 			fmt.Fprintf(w, "Error with template: %s ", err)
 			return
 		}
 		b.WriteTo(w)
-
+		return
 	}
+
+	// parse time info
+	const dateForm = "02 Jan 06 15:04"
+	startTimeStr := r.FormValue("start_date")
+	endTimeStr := r.FormValue("end_date")
+	loc, _ := time.LoadLocation("Local")
+	startTime, _ := time.ParseInLocation(dateForm, startTimeStr, loc)
+	endTime, _ := time.ParseInLocation(dateForm, endTimeStr, loc)
+	from := startTime.Unix()
+	to := endTime.Unix()
+
+	var results []QueryStore
+	err = mcoll.Find(bson.M{
+		"$and": []bson.M{bson.M{"uniquename": servicePost},
+			bson.M{"unixtime": bson.M{
+				"$gt": from,
+				"$lt": to,
+			}}}}).All(&results)
+	if err != nil {
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+		return
+	}
+	if len(results) == 0 {
+		http.Redirect(w, r, "/html/nodata.html", http.StatusFound)
+		return
+	}
+
+	var statistics []QueryResult
+	for _, result := range results {
+		qr := QueryResult{
+			Units: result.Unit,
+			Value: result.Value,
+			Time:  result.UnixTime,
+		}
+		statistics = append(statistics, qr)
+	}
+	sort.Sort(ByTime(statistics))
+
+	title := "Statistics for " + servicePost
+	_, err = graphMetric(statistics, title)
+	if err != nil {
+		fmt.Fprintf(w, "%q\n", err)
+	}
+
+	var b bytes.Buffer
+	err = t.ExecuteTemplate(&b, "custom-img.html", templateService)
+	if err != nil {
+		fmt.Fprintf(w, "Error with template: %s ", err)
+		return
+	}
+	b.WriteTo(w)
+
 }
 
 // detail handler
-func detailHandler(hosts map[string]MetricQuery) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := webSession(w, r)
-		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusFound)
-		}
+func detailHandler(w http.ResponseWriter, r *http.Request) {
 
-		vars := mux.Vars(r)
-		query := vars["sd"]
-
-		hostquery, ok := hosts[query]
-		if ok == false {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		if err := r.ParseForm(); err != nil {
-			panic(err)
-		}
-		timeframe := r.FormValue("t")
-		if timeframe == "" {
-			timeframe = "-4h"
-		}
-		match, err := regexp.MatchString("^(-1h|-4h|-24h|-168h)$", timeframe)
-		if match == false {
-			http.Redirect(w, r, "/html/error.html", http.StatusFound)
-			return
-		}
-
-		err = hostquery.getStatistics(timeframe)
-		if err != nil {
-			log.Printf("Error with getStatistics: %s", err)
-			http.Redirect(w, r, "/html/error.html", http.StatusFound)
-			return
-		}
-
-		title := ""
-		fmt.Sprintf(title, "Statistics for %s", hostquery.Label)
-		currentMetric, err := graphMetric(hostquery.Results, title)
-		if err != nil {
-			fmt.Fprintf(w, "%q\n", err)
-		}
-		detail := Detail{
-			Host:    hostquery.Name,
-			Service: hostquery.Label,
-			Time:    time.Unix(int64(currentMetric.Time), 0).Format(time.RFC822),
-			Alert:   currentMetric.Alert,
-			Value:   currentMetric.Value,
-			Units:   currentMetric.Units,
-		}
-		var b bytes.Buffer
-		err = t.ExecuteTemplate(&b, "detail.html", detail)
-		if err != nil {
-			fmt.Fprintf(w, "Error with template: %s ", err)
-			return
-		}
-		b.WriteTo(w)
-
+	// map servicenames for query
+	var hosts []MetricQuery
+	hosts = getThresholds()
+	var namemap = make(map[string]MetricQuery)
+	for _, host := range hosts {
+		namemap[host.Name] = host
 	}
+
+	err := webSession(w, r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+
+	vars := mux.Vars(r)
+	query := vars["sd"]
+
+	hostquery, ok := namemap[query]
+	if ok == false {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		panic(err)
+	}
+	timeframe := r.FormValue("t")
+	if timeframe == "" {
+		timeframe = "-4h"
+	}
+	match, err := regexp.MatchString("^(-1h|-4h|-24h|-168h)$", timeframe)
+	if match == false {
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+		return
+	}
+
+	err = hostquery.getStatistics(timeframe)
+	if err != nil {
+		log.Printf("Error with getStatistics: %s", err)
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+		return
+	}
+
+	title := ""
+	fmt.Sprintf(title, "Statistics for %s", hostquery.Label)
+	currentMetric, err := graphMetric(hostquery.Results, title)
+	if err != nil {
+		fmt.Fprintf(w, "%q\n", err)
+	}
+	detail := Detail{
+		Host:    hostquery.Name,
+		Service: hostquery.Label,
+		Time:    time.Unix(int64(currentMetric.Time), 0).Format(time.RFC822),
+		Alert:   currentMetric.Alert,
+		Value:   currentMetric.Value,
+		Units:   currentMetric.Units,
+	}
+	var b bytes.Buffer
+	err = t.ExecuteTemplate(&b, "detail.html", detail)
+	if err != nil {
+		fmt.Fprintf(w, "Error with template: %s ", err)
+		return
+	}
+	b.WriteTo(w)
+
 }

@@ -112,18 +112,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("ensure index: %v", err)
 	}
-	// Parse threshold file
-	data, err := ioutil.ReadFile("thresh.json")
-	if err != nil {
-		log.Fatalf("readfile: %v", err)
-	}
-	err = json.Unmarshal([]byte(data), &hosts)
-	if err != nil {
-		log.Fatalf("unmarshal: %v", err)
-	}
-	if debug == 1 {
-		fmt.Println(hosts)
-	}
 }
 
 // sort functions
@@ -185,4 +173,21 @@ func alertText(alert string) string {
 //template function
 func ctime() string {
 	return time.Now().Format(time.RFC822)
+}
+
+func getThresholds() []MetricQuery {
+	var hosts []MetricQuery
+	// Parse threshold file
+	data, err := ioutil.ReadFile("thresh.json")
+	if err != nil {
+		log.Fatalf("readfile: %v", err)
+	}
+	err = json.Unmarshal([]byte(data), &hosts)
+	if err != nil {
+		log.Fatalf("unmarshal: %v", err)
+	}
+	if debug == 1 {
+		fmt.Println(hosts)
+	}
+	return hosts
 }

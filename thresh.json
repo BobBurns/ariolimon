@@ -22,7 +22,7 @@
  ],
  "metric": "CPUUtilization",
  "statistics": "Maximum",
- "warning": "0:5",
+ "warning": "0:0.15",
  "critical": "0:10"},
 
 {"name": "apm1_networkin",
