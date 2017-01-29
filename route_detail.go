@@ -81,7 +81,11 @@ func customHandler(w http.ResponseWriter, r *http.Request) {
 
 	// dynamically load thresholds
 	var hosts []MetricQuery
-	hosts = getThresholds()
+	err, hosts = getThresholds()
+	if err != nil {
+		log.Printf("Error with thresh.json: %s\n", err)
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+	}
 	templateService := Services{}
 	for _, host := range hosts {
 		templateService.Service = append(templateService.Service, host.Name)
@@ -114,6 +118,7 @@ func customHandler(w http.ResponseWriter, r *http.Request) {
 	to := endTime.Unix()
 
 	var results []QueryStore
+	mcoll := msess.DB("aws_metric_store").C("metric_values")
 	err = mcoll.Find(bson.M{
 		"$and": []bson.M{bson.M{"uniquename": servicePost},
 			bson.M{"unixtime": bson.M{
@@ -121,6 +126,7 @@ func customHandler(w http.ResponseWriter, r *http.Request) {
 				"$lt": to,
 			}}}}).All(&results)
 	if err != nil {
+		log.Printf("DB error: %s\n", err)
 		http.Redirect(w, r, "/html/error.html", http.StatusFound)
 		return
 	}
@@ -161,13 +167,17 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 
 	// map servicenames for query
 	var hosts []MetricQuery
-	hosts = getThresholds()
+	err, hosts := getThresholds()
+	if err != nil {
+		log.Printf("Error with thresh.json: %s\n", err)
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+	}
 	var namemap = make(map[string]MetricQuery)
 	for _, host := range hosts {
 		namemap[host.Name] = host
 	}
 
-	err := webSession(w, r)
+	err = webSession(w, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}

@@ -35,7 +35,7 @@
  "metric": "NetworkIn",
  "statistics": "Average",
  "warning": "0:5",
- "critical": "0:10"},
+ "critical": "0:500"},
 
 {"name": "apm1_netpacketsout",
  "hostname": "apm-prod-1",

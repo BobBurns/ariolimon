@@ -31,11 +31,13 @@ type Session struct {
 }
 
 func (sess *Session) DeleteSession() error {
+	sesscoll := msess.DB("aws_metric_store").C("web_session")
 	err := sesscoll.Remove(bson.M{"cookie": sess.Cookie})
 	return err
 }
 
 func (sess *Session) Check() bool {
+	sesscoll := msess.DB("aws_metric_store").C("web_session")
 	err := sesscoll.Find(bson.M{"cookie": sess.Cookie}).One(sess)
 	if err == nil {
 		return true
@@ -57,6 +59,7 @@ func (sess *Session) GenerateCookie() {
 	sess.Cookie = base64.URLEncoding.EncodeToString(b)
 }
 func (sess *Session) Save() error {
+	sesscoll := msess.DB("aws_metric_store").C("web_session")
 	sess.StartTime = time.Now().Unix()
 	err := sesscoll.Insert(sess)
 	return err
@@ -95,6 +98,7 @@ func webSession(w http.ResponseWriter, r *http.Request) error {
 }
 
 func updatePassword(name, pass string) error {
+	dbcoll := msess.DB("aws_metric_store").C("aws_usr")
 	if debug == 2 {
 		fmt.Println("updatePassword!")
 	}
@@ -110,6 +114,7 @@ func updatePassword(name, pass string) error {
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 
+	dbcoll := msess.DB("aws_metric_store").C("aws_usr")
 	redirect := false
 	loginUser := User{}
 	var b bytes.Buffer

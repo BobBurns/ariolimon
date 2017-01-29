@@ -130,6 +130,7 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 		fmt.Printf("Get Statistics Result: %v", mq)
 	}
 	// persist result
+	mcoll := msess.DB("aws_metric_store").C("metric_values")
 	for _, qr := range mq.Results {
 		data := QueryStore{
 			UniqueName: mq.Name,

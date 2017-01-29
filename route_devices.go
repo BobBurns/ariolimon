@@ -9,8 +9,12 @@ import (
 
 //query amazon and display device statistics
 func devHandler(w http.ResponseWriter, r *http.Request) {
-	querys := getThresholds()
-	err := webSession(w, r)
+	err, querys := getThresholds()
+	if err != nil {
+		log.Printf("Error with getStatistics: %s", err)
+		http.Redirect(w, r, "/html/error.html", http.StatusFound)
+	}
+	err = webSession(w, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}

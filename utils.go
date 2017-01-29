@@ -19,10 +19,6 @@ var t *template.Template
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
 var msess *mgo.Session
-var mcoll *mgo.Collection
-var dbcoll *mgo.Collection
-var sesscoll *mgo.Collection
-var hosts []MetricQuery
 
 func init() {
 	// map functions for http templates
@@ -72,7 +68,7 @@ func init() {
 	msess.SetMode(mgo.Monotonic, true)
 
 	// connection to metric_values
-	mcoll = msess.DB("aws_metric_store").C("metric_values")
+	mcoll := msess.DB("aws_metric_store").C("metric_values")
 	index := mgo.Index{
 		Key:        []string{"unixtime", "uniquename"},
 		Unique:     true,
@@ -86,7 +82,7 @@ func init() {
 	}
 
 	// set up connection to user collection
-	dbcoll = msess.DB("aws_metric_store").C("aws_usr")
+	dbcoll := msess.DB("aws_metric_store").C("aws_usr")
 	usrindex := mgo.Index{
 		Key:        []string{"name"},
 		Unique:     true,
@@ -100,7 +96,7 @@ func init() {
 	}
 
 	// set up connection to session collection
-	sesscoll = msess.DB("aws_metric_store").C("web_session")
+	sesscoll := msess.DB("aws_metric_store").C("web_session")
 	sessindex := mgo.Index{
 		Key:        []string{"cookie"},
 		Unique:     true,
@@ -175,19 +171,20 @@ func ctime() string {
 	return time.Now().Format(time.RFC822)
 }
 
-func getThresholds() []MetricQuery {
+// function to dynamically load thresholds
+func getThresholds() (error, []MetricQuery) {
 	var hosts []MetricQuery
 	// Parse threshold file
 	data, err := ioutil.ReadFile("thresh.json")
 	if err != nil {
-		log.Fatalf("readfile: %v", err)
+		return err, nil
 	}
 	err = json.Unmarshal([]byte(data), &hosts)
 	if err != nil {
-		log.Fatalf("unmarshal: %v", err)
+		return err, nil
 	}
 	if debug == 1 {
 		fmt.Println(hosts)
 	}
-	return hosts
+	return nil, hosts
 }
