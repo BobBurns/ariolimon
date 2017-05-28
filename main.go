@@ -13,7 +13,7 @@ import (
 func main() {
 
 	router := mux.NewRouter()
-	sub := router.Host("128.114.97.100").Subrouter()
+	sub := router.Host("localhost").Subrouter()
 	sub.PathPrefix("/html/").Handler(http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 	sub.HandleFunc("/", devHandler)
 
