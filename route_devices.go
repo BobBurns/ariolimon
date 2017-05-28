@@ -14,15 +14,9 @@ func devHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error with getStatistics: %s", err)
 		http.Redirect(w, r, "/html/error.html", http.StatusFound)
 	}
-	err = webSession(w, r)
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
 	for i, _ := range querys {
 		err = querys[i].getStatistics("-10m")
 
-		//		err := query.getStatistics("-10m")
-		//fmt.Println("stat: ", query.Name)
 		if err != nil {
 			log.Printf("Error with getStatistics: %s", err)
 			http.Redirect(w, r, "/html/error.html", http.StatusFound)

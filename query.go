@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	//	"gopkg.in/mgo.v2"
+	//	"gopkg.in/mgo.v2/bson"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,13 +30,6 @@ type QueryResult struct {
 	Units string
 	Value float64
 	Time  float64
-}
-type QueryStore struct {
-	ID         bson.ObjectId `bson:"_id,omitempty"`
-	UniqueName string
-	Value      float64
-	Unit       string
-	UnixTime   float64
 }
 
 type MetricQuery struct {
@@ -130,21 +123,6 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 		fmt.Printf("Get Statistics Result: %v", mq)
 	}
 	// persist result
-	mcoll := msess.DB("aws_metric_store").C("metric_values")
-	for _, qr := range mq.Results {
-		data := QueryStore{
-			UniqueName: mq.Name,
-			Value:      qr.Value,
-			Unit:       qr.Units,
-			UnixTime:   qr.Time,
-		}
-		err = mcoll.Insert(&data)
-		if err != nil {
-			if mgo.IsDup(err) == false {
-				fmt.Printf("error in insert: %v\n", err)
-			}
-		}
-	}
 
 	return nil
 }

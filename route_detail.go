@@ -8,12 +8,10 @@ import (
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
 	"github.com/gorilla/mux"
-	"gopkg.in/mgo.v2/bson"
 	"image/color"
 	"log"
 	"net/http"
 	"regexp"
-	"sort"
 	"time"
 )
 
@@ -73,94 +71,6 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 }
 
 // custom detail from db
-func customHandler(w http.ResponseWriter, r *http.Request) {
-	err := webSession(w, r)
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-
-	// dynamically load thresholds
-	var hosts []MetricQuery
-	err, hosts = getThresholds()
-	if err != nil {
-		log.Printf("Error with thresh.json: %s\n", err)
-		http.Redirect(w, r, "/html/error.html", http.StatusFound)
-	}
-	templateService := Services{}
-	for _, host := range hosts {
-		templateService.Service = append(templateService.Service, host.Name)
-	}
-
-	// check if form is posted with timeframe and metric query info
-	r.ParseForm()
-	servicePost := r.FormValue("service")
-	if servicePost == "" {
-
-		// if no form don't display metric image
-		var b bytes.Buffer
-		err := t.ExecuteTemplate(&b, "custom.html", templateService)
-		if err != nil {
-			fmt.Fprintf(w, "Error with template: %s ", err)
-			return
-		}
-		b.WriteTo(w)
-		return
-	}
-
-	// parse time info
-	const dateForm = "02 Jan 06 15:04"
-	startTimeStr := r.FormValue("start_date")
-	endTimeStr := r.FormValue("end_date")
-	loc, _ := time.LoadLocation("Local")
-	startTime, _ := time.ParseInLocation(dateForm, startTimeStr, loc)
-	endTime, _ := time.ParseInLocation(dateForm, endTimeStr, loc)
-	from := startTime.Unix()
-	to := endTime.Unix()
-
-	var results []QueryStore
-	mcoll := msess.DB("aws_metric_store").C("metric_values")
-	err = mcoll.Find(bson.M{
-		"$and": []bson.M{bson.M{"uniquename": servicePost},
-			bson.M{"unixtime": bson.M{
-				"$gt": from,
-				"$lt": to,
-			}}}}).All(&results)
-	if err != nil {
-		log.Printf("DB error: %s\n", err)
-		http.Redirect(w, r, "/html/error.html", http.StatusFound)
-		return
-	}
-	if len(results) == 0 {
-		http.Redirect(w, r, "/html/nodata.html", http.StatusFound)
-		return
-	}
-
-	var statistics []QueryResult
-	for _, result := range results {
-		qr := QueryResult{
-			Units: result.Unit,
-			Value: result.Value,
-			Time:  result.UnixTime,
-		}
-		statistics = append(statistics, qr)
-	}
-	sort.Sort(ByTime(statistics))
-
-	title := "Statistics for " + servicePost
-	_, err = graphMetric(statistics, title)
-	if err != nil {
-		fmt.Fprintf(w, "%q\n", err)
-	}
-
-	var b bytes.Buffer
-	err = t.ExecuteTemplate(&b, "custom-img.html", templateService)
-	if err != nil {
-		fmt.Fprintf(w, "Error with template: %s ", err)
-		return
-	}
-	b.WriteTo(w)
-
-}
 
 // detail handler
 func detailHandler(w http.ResponseWriter, r *http.Request) {
@@ -175,11 +85,6 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	var namemap = make(map[string]MetricQuery)
 	for _, host := range hosts {
 		namemap[host.Name] = host
-	}
-
-	err = webSession(w, r)
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 
 	vars := mux.Vars(r)

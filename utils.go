@@ -7,18 +7,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"gopkg.in/mgo.v2"
 	"html/template"
 	"io/ioutil"
-	"log"
-	"os"
 	"time"
 )
 
 var t *template.Template
 var svc *cloudwatch.CloudWatch
 var svc_ec2 *ec2.EC2
-var msess *mgo.Session
+
+//var msess *mgo.Session
 
 func init() {
 	// map functions for http templates
@@ -41,73 +39,6 @@ func init() {
 	svc = cloudwatch.New(sess)
 	svc_ec2 = ec2.New(sess)
 
-	// init mongo db
-	// get db config
-	dbData, err := os.Open("configdb.json")
-	if err != nil {
-		log.Fatalf("open configdb: %v", err)
-	}
-	configdb := struct {
-		Host string
-		User string
-		Pass string
-		Db   string
-	}{}
-
-	decoder := json.NewDecoder(dbData)
-	err = decoder.Decode(&configdb)
-	if err != nil {
-		log.Fatalf("decode: %v", err)
-	}
-	dburl := configdb.User + ":" + configdb.Pass + "@" + configdb.Host + "/" + configdb.Db
-
-	msess, err = mgo.Dial(dburl)
-	if err != nil {
-		panic(err)
-	}
-	msess.SetMode(mgo.Monotonic, true)
-
-	// connection to metric_values
-	mcoll := msess.DB("aws_metric_store").C("metric_values")
-	index := mgo.Index{
-		Key:        []string{"unixtime", "uniquename"},
-		Unique:     true,
-		DropDups:   true,
-		Background: true,
-		Sparse:     true,
-	}
-	err = mcoll.EnsureIndex(index)
-	if err != nil {
-		log.Fatalf("ensure index: %v", err)
-	}
-
-	// set up connection to user collection
-	dbcoll := msess.DB("aws_metric_store").C("aws_usr")
-	usrindex := mgo.Index{
-		Key:        []string{"name"},
-		Unique:     true,
-		DropDups:   false,
-		Background: true,
-		Sparse:     true,
-	}
-	err = dbcoll.EnsureIndex(usrindex)
-	if err != nil {
-		log.Fatalf("ensure index: %v", err)
-	}
-
-	// set up connection to session collection
-	sesscoll := msess.DB("aws_metric_store").C("web_session")
-	sessindex := mgo.Index{
-		Key:        []string{"cookie"},
-		Unique:     true,
-		DropDups:   false,
-		Background: true,
-		Sparse:     true,
-	}
-	err = sesscoll.EnsureIndex(sessindex)
-	if err != nil {
-		log.Fatalf("ensure index: %v", err)
-	}
 }
 
 // sort functions
