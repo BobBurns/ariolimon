@@ -12,18 +12,12 @@ import (
 
 func main() {
 
-	defer msess.Close()
-
 	router := mux.NewRouter()
 	sub := router.Host("localhost").Subrouter()
 	sub.PathPrefix("/html/").Handler(http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
-	sub.HandleFunc("/", index)
-	sub.HandleFunc("/devices", devHandler)
+	sub.HandleFunc("/", devHandler)
 
 	sub.HandleFunc("/detail/{sd:[a-zA-Z0-9_-]+}", detailHandler)
-	sub.HandleFunc("/custom", customHandler)
-	sub.HandleFunc("/login", loginHandler)
-	sub.HandleFunc("/logout", logoutHandler)
 
 	// IdleTimeout requires go1.8
 	server := http.Server{

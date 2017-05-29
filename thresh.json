@@ -59,53 +59,6 @@
  "metric": "VolumeIdleTime",
  "statistics": "Maximum",
  "warning": "0:50000",
- "critical": "0:1000000"},
-
-{"name": "apm2_cpuu",
- "hostname": "apm-prod-2",
- "namespace": "AWS/EC2",
- "dimensions": [
-	{"dim_name": "InstanceId",
-	 "dim_value": "i-05fc6c9c639ef395d"}
- ],
- "metric": "CPUUtilization",
- "statistics": "Maximum",
- "warning": "0:5",
- "critical": "0:10"},
-
-{"name": "apm2_networkin",
- "hostname": "apm-prod-2",
- "namespace": "AWS/EC2",
- "dimensions": [
-	{"dim_name": "InstanceId",
-	 "dim_value": "i-05fc6c9c639ef395d"}
- ],
- "metric": "NetworkIn",
- "statistics": "Average",
- "warning": "0:5",
- "critical": "0:10"},
-
-{"name": "apm2_netpacketsout",
- "hostname": "apm-prod-2",
- "namespace": "AWS/EC2",
- "dimensions": [
-	{"dim_name": "InstanceId",
-	 "dim_value": "i-05fc6c9c639ef395d"}
- ],
- "metric": "NetworkPacketsOut",
- "statistics": "Average",
- "warning": "0:100",
- "critical": "0:1000"},
-
-{"name": "apm2_ebs_idletime",
- "hostname": "apm-prod-2",
- "namespace": "AWS/EBS",
- "dimensions": [
-	{"dim_name": "VolumeId",
-	 "dim_value": "vol-006fe747247e67e98"}
- ],
- "metric": "VolumeIdleTime",
- "statistics": "Maximum",
- "warning": "0:50000",
- "critical": "0:10000"}
+ "critical": "0:1000000"}
 ]
+
