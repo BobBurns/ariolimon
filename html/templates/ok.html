@@ -42,9 +42,27 @@
 	 <div class="col-md-10">
          {{range .}}
 	 {{ $result := index .Results 0 }}
+	 {{ if eq $result.Alert "success" }}
          <div class="alert alert-{{ $result.Alert }}" role="alert">
 		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
 	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
+	 {{ end }}
+         {{ end }}
+         {{range .}}
+	 {{ $result := index .Results 0 }}
+	 {{ if eq $result.Alert "warning" }}
+         <div class="alert alert-{{ $result.Alert }}" role="alert">
+		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
+	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
+	 {{ end }}
+         {{ end }}
+         {{range .}}
+	 {{ $result := index .Results 0 }}
+	 {{ if eq $result.Alert "danger" }}
+         <div class="alert alert-{{ $result.Alert }}" role="alert">
+		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
+	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
+	 {{ end }}
          {{ end }}
     	 </div>
       </div>

@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"io/ioutil"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"html/template"
-	"io/ioutil"
-	"time"
 )
 
 var t *template.Template
@@ -26,7 +27,7 @@ func init() {
 	}
 
 	// parse html template and threshold configuration file
-	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/custom.html", "html/templates/custom-img.html", "html/templates/login.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/crit.html", "html/templates/detail.html", "html/templates/warn.html", "html/templates/ok.html", "html/templates/home2.html"))
 
 	// init cloudwatch session
 	sess, err := session.NewSession(&aws.Config{
