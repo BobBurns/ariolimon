@@ -28,7 +28,7 @@
 	    <br>
 	<div class="dropdown">
 	  <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-		  Sort
+		  Sort By
 		  <span class="caret"></span>
 	  </button>
 	  <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
@@ -59,6 +59,14 @@
          {{range .}}
 	 {{ $result := index .Results 0 }}
 	 {{ if eq $result.Alert "success" }}
+         <div class="alert alert-{{ $result.Alert }}" role="alert">
+		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
+	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
+	 {{ end }}
+         {{ end }}
+         {{range .}}
+	 {{ $result := index .Results 0 }}
+	 {{ if eq $result.Alert "info" }}
          <div class="alert alert-{{ $result.Alert }}" role="alert">
 		 {{ .Host }} <a href="/detail/{{ .Name }}" class="alert-link">{{ .Label }}</a>
 	    - {{ $result.Value | printf "%.2f" }} {{ $result.Units }}</div>
