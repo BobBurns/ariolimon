@@ -25,6 +25,66 @@
  "warning": "0:0.15",
  "critical": "0:10"},
 
+{"name": "apm1_diskreadops",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "DiskReadOps",
+ "statistics": "Average",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_diskwriteops",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "DiskWriteOps",
+ "statistics": "Average",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_diskreadbytes",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "DiskReadBytes",
+ "statistics": "Average",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_diskwritebytes",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "DiskWriteBytes",
+ "statistics": "Average",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_NetworkOut",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "NetworkOut",
+ "statistics": "Average",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
 {"name": "apm1_networkin",
  "hostname": "apm-prod-1",
  "namespace": "AWS/EC2",
@@ -48,6 +108,30 @@
  "statistics": "Average",
  "warning": "0:100",
  "critical": "0:1000"},
+
+{"name": "apm1_netpacketsin",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "NetworkPacketsIn",
+ "statistics": "Average",
+ "warning": "0:100",
+ "critical": "0:1000"},
+
+{"name": "apm1_statuscheckfailed_system",
+ "hostname": "apm-prod-1",
+ "namespace": "AWS/EC2",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-029380affdd1af297"}
+ ],
+ "metric": "StatusCheckFailed_System",
+ "statistics": "Average",
+ "warning": "0:1",
+ "critical": "0:1"},
 
 {"name": "apm1_ebs_idletime",
  "hostname": "apm-prod-1",
