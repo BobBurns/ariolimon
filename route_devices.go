@@ -14,11 +14,15 @@ func devHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	stemp := vars["sort"]
 
+	// getThresholds function in utils.go
+	// loads predefined thresholds from thresh.json
 	err, querys := getThresholds()
 	if err != nil {
 		log.Printf("Error with getStatistics: %s", err)
 		http.Redirect(w, r, "/html/error.html", http.StatusFound)
 	}
+
+	// get statistics for every metric defined in thresh.json
 	for i, _ := range querys {
 		err = querys[i].getStatistics("-10m")
 
@@ -29,6 +33,8 @@ func devHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var b bytes.Buffer
+
+	// display by stemp var in url
 	h := "home2.html"
 	switch stemp {
 	case "crit":

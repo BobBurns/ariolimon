@@ -10,14 +10,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
 var t *template.Template
-var svc *cloudwatch.CloudWatch
-var svc_ec2 *ec2.EC2
 
-//var msess *mgo.Session
+// aws cloudwatch api
+var svc *cloudwatch.CloudWatch
 
 func init() {
 	// map functions for http templates
@@ -38,7 +36,6 @@ func init() {
 	}
 
 	svc = cloudwatch.New(sess)
-	svc_ec2 = ec2.New(sess)
 
 }
 
