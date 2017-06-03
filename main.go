@@ -13,7 +13,7 @@ import (
 func main() {
 
 	router := mux.NewRouter()
-	sub := router.Host("128.114.97.100").Subrouter()
+	sub := router.Host("localhost").Subrouter()
 	sub.PathPrefix("/html/").Handler(http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 	sub.HandleFunc("/", devHandler)
 	// gorilla mux var to handle different html outputs
@@ -24,11 +24,11 @@ func main() {
 
 	// IdleTimeout requires go1.8
 	server := http.Server{
-		Addr:         ":8080",
+		Addr:         ":8082",
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		//		IdleTimeout:  120 * time.Second,
-		Handler: router,
+		IdleTimeout:  120 * time.Second,
+		Handler:      router,
 	}
 	fmt.Println("Server started at localhost:8082")
 	log.Fatal(server.ListenAndServe())

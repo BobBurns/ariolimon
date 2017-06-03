@@ -94,6 +94,8 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 			aws.String(mq.Statistics),
 		},
 	}
+
+	// aws cloudwatch call
 	resp, err := svc.GetMetricStatistics(&params)
 	if err != nil {
 		return fmt.Errorf("Metric query failed: %s", err.Error())
