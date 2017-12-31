@@ -20,6 +20,8 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 
 	var trans float64 = 1.0
 	var tlabel string = metrics[0].Units
+
+	// convert to MB or KB if values in range
 	if tlabel == "Bytes" {
 		for _, data := range metrics {
 			if data.Value > 1048576.0 {
@@ -31,9 +33,12 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 			}
 		}
 	}
+
+	// time function for gonum/plot
 	local := func(f float64) time.Time {
 		return time.Unix(int64(f), 0).Local()
 	}
+
 	xticks := plot.TimeTicks{
 		Format: time.Stamp,
 		Time:   local,
@@ -47,7 +52,7 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 	if err != nil {
 		return QueryResult{}, err
 	}
-	//	values = pts
+
 	p.Title.Text = title
 	p.X.Tick.Marker = xticks
 	p.Y.Label.Text = tlabel
@@ -63,16 +68,20 @@ func graphMetric(metrics []QueryResult, title string) (QueryResult, error) {
 	points.Color = color.RGBA{A: 255}
 
 	p.Add(line, points)
+
+	// save graph as png
 	err = p.Save(20*vg.Centimeter, 10*vg.Centimeter, "html/currentgraph.png")
 	if err != nil {
 		return QueryResult{}, err
 	}
+
+	// last metric for display
 	return metrics[len(metrics)-1], nil
 }
 
-// custom detail from db
-
 // detail handler
+// called from html devices
+// expanded detail for service
 func detailHandler(w http.ResponseWriter, r *http.Request) {
 
 	// map servicenames for query
@@ -82,11 +91,14 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error with thresh.json: %s\n", err)
 		http.Redirect(w, r, "/html/error.html", http.StatusFound)
 	}
+
 	var namemap = make(map[string]MetricQuery)
 	for _, host := range hosts {
 		namemap[host.Name] = host
 	}
 
+	// get service id from url
+	// detail/service_name?t=timeframe
 	vars := mux.Vars(r)
 	query := vars["sd"]
 
@@ -108,6 +120,7 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// get detail metrics query from aws cloudwatch
 	err = hostquery.getStatistics(timeframe)
 	if err != nil {
 		log.Printf("Error with getStatistics: %s", err)
@@ -121,6 +134,8 @@ func detailHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Fprintf(w, "%q\n", err)
 	}
+
+	// last metric detail for html
 	detail := Detail{
 		Host:    hostquery.Name,
 		Service: hostquery.Label,

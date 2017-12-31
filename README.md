@@ -16,6 +16,8 @@ If you don't already have it, you can download and install Go from [here](https:
 
 **Install dependencies**
 
+It's possible you will need mercurial
+
 ```
 go get
 ```
@@ -48,3 +50,8 @@ Run `go build ` and execute `./ariolimon`
 Open a web browser and navigate to localhost:8082
 
 Feel free to contact me for troubleshooting reburns@protonmail.com
+
+## **TODO** ##
+
+Test with multiple aws accounts. Will need multiple profiles.
+
