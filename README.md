@@ -21,7 +21,6 @@ Clone this repo inside your $GOPATH.
 
 Change the thresh.json file to suit your needs.
 
-<<<<<<< HEAD
 Add a configdb.json file in the main directory that has database authentication info
 
 ```
@@ -40,7 +39,6 @@ Start database server `mongod --auth`
 `go build new_user.go` in new\_user directory and run `./new_user -u user <-p password>` 
 =======
 Note if you are running < go 1.8 comment out line 41 in main.go
->>>>>>> 72e91d5c43cecb11c6c0df5d9aa992289df76533
 
 Run `go build ` and execute `./ariolimon`
 
