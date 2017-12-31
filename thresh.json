@@ -18,19 +18,103 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "CPUUtilization",
  "statistics": "Maximum",
  "warning": "0:0.15",
  "critical": "0:10"},
 
+{"name": "apm1_cpu_load1",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "cpu_load1",
+ "statistics": "Minimum",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_cpu_load5",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "cpu_load5",
+ "statistics": "Minimum",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_cpu_load15",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "cpu_load15",
+ "statistics": "Minimum",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_disk_free:/",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "disk_free:/",
+ "statistics": "Minimum",
+ "warning": "0:1500000",
+ "critical": "0:10000"},
+
+{"name": "apm1_disk_avail:/",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "disk_avail:/",
+ "statistics": "Minimum",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_swap_total",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "swap_total",
+ "statistics": "Minimum",
+ "warning": "0:0.15",
+ "critical": "0:10"},
+
+{"name": "apm1_swap_free",
+ "hostname": "apm-prod-1",
+ "namespace": "CWBobby",
+ "dimensions": [
+	{"dim_name": "InstanceId",
+	 "dim_value": "i-009614d62f6578510"}
+ ],
+ "metric": "swap_free",
+ "statistics": "Minimum",
+ "warning": "0:50000",
+ "critical": "0:1000"},
+
 {"name": "apm1_diskreadops",
  "hostname": "apm-prod-1",
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "DiskReadOps",
  "statistics": "Average",
@@ -42,7 +126,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "DiskWriteOps",
  "statistics": "Average",
@@ -54,7 +138,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "DiskReadBytes",
  "statistics": "Average",
@@ -66,7 +150,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "DiskWriteBytes",
  "statistics": "Average",
@@ -78,7 +162,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "NetworkOut",
  "statistics": "Average",
@@ -90,7 +174,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "NetworkIn",
  "statistics": "Average",
@@ -102,7 +186,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "NetworkPacketsOut",
  "statistics": "Average",
@@ -114,7 +198,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "NetworkPacketsIn",
  "statistics": "Average",
@@ -126,7 +210,7 @@
  "namespace": "AWS/EC2",
  "dimensions": [
 	{"dim_name": "InstanceId",
-	 "dim_value": "i-029380affdd1af297"}
+	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "StatusCheckFailed_System",
  "statistics": "Average",
@@ -138,7 +222,7 @@
  "namespace": "AWS/EBS",
  "dimensions": [
 	{"dim_name": "VolumeId",
-	 "dim_value": "vol-040940a671907e1a8"}
+	 "dim_value": "vol-009bdab17723eca82"}
  ],
  "metric": "VolumeIdleTime",
  "statistics": "Maximum",
