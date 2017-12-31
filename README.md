@@ -37,7 +37,7 @@ Note if you are running go 1.8 comment out line 41 in main.go
 Start database server `mongod --auth`
 
 `go build new_user.go` in new\_user directory and run `./new_user -u user <-p password>` 
-=======
+
 Note if you are running < go 1.8 comment out line 41 in main.go
 
 Run `go build ` and execute `./ariolimon`
