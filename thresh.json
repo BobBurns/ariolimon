@@ -33,7 +33,7 @@
 	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "cpu_load1",
- "statistics": "Minimum",
+ "statistics": "Average",
  "warning": "0:0.15",
  "critical": "0:10"},
 
@@ -45,7 +45,7 @@
 	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "cpu_load5",
- "statistics": "Minimum",
+ "statistics": "Average",
  "warning": "0:0.15",
  "critical": "0:10"},
 
@@ -57,11 +57,11 @@
 	 "dim_value": "i-009614d62f6578510"}
  ],
  "metric": "cpu_load15",
- "statistics": "Minimum",
+ "statistics": "Average",
  "warning": "0:0.15",
  "critical": "0:10"},
 
-{"name": "apm1_disk_free:/",
+{"name": "apm1_disk_free",
  "hostname": "apm-prod-1",
  "namespace": "CWBobby",
  "dimensions": [
@@ -70,10 +70,10 @@
  ],
  "metric": "disk_free:/",
  "statistics": "Minimum",
- "warning": "0:1500000",
- "critical": "0:10000"},
+ "warning": "10:",
+ "critical": "5:"},
 
-{"name": "apm1_disk_avail:/",
+{"name": "apm1_disk_avail",
  "hostname": "apm-prod-1",
  "namespace": "CWBobby",
  "dimensions": [
@@ -82,8 +82,8 @@
  ],
  "metric": "disk_avail:/",
  "statistics": "Minimum",
- "warning": "0:0.15",
- "critical": "0:10"},
+ "warning": "50000:",
+ "critical": "100000:"},
 
 {"name": "apm1_swap_total",
  "hostname": "apm-prod-1",
@@ -94,8 +94,8 @@
  ],
  "metric": "swap_total",
  "statistics": "Minimum",
- "warning": "0:0.15",
- "critical": "0:10"},
+ "warning": "1000:",
+ "critical": "500:"},
 
 {"name": "apm1_swap_free",
  "hostname": "apm-prod-1",
@@ -106,8 +106,8 @@
  ],
  "metric": "swap_free",
  "statistics": "Minimum",
- "warning": "0:50000",
- "critical": "0:1000"},
+ "warning": "500:",
+ "critical": "1000:"},
 
 {"name": "apm1_diskreadops",
  "hostname": "apm-prod-1",

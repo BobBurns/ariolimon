@@ -156,6 +156,8 @@ func (mq *MetricQuery) getStatistics(timeframe string) error {
 func (qr *QueryResult) compareThresh(warn, crit string) {
 	// adjust for transform
 	value := qr.Value // make a copy
+	notopc := false
+	notopw := false
 
 	if qr.Units == "MB" {
 		value = value * 1048576.0
@@ -170,7 +172,9 @@ func (qr *QueryResult) compareThresh(warn, crit string) {
 	var maxcrit float64 = 100.0
 	warnings := strings.Split(warn, ":")
 
-	if len(warnings) < 2 {
+	if warn[len(warn)-1] == ':' {
+		notopw = true
+	} else if len(warnings) < 2 {
 		minwarn = 0
 		maxwarn, _ = strconv.ParseFloat(warnings[0], 64)
 	} else {
@@ -179,7 +183,9 @@ func (qr *QueryResult) compareThresh(warn, crit string) {
 	}
 	criticals := strings.Split(crit, ":")
 
-	if len(criticals) < 2 {
+	if crit[len(crit)-1] == ':' {
+		notopc = true
+	} else if len(criticals) < 2 {
 		mincrit = 0.0
 		maxcrit, _ = strconv.ParseFloat(criticals[0], 64)
 	} else {
@@ -189,8 +195,16 @@ func (qr *QueryResult) compareThresh(warn, crit string) {
 
 	// alerts for pretty twitter bootstrap colors
 	qr.Alert = "success"
-	if value > maxcrit || value < mincrit {
+	if notopc {
+		if value < mincrit {
+			qr.Alert = "danger"
+		}
+	} else if value > maxcrit || value < mincrit {
 		qr.Alert = "danger"
+	} else if notopw {
+		if value < mincrit {
+			qr.Alert = "warning"
+		}
 	} else if value > maxwarn || value < minwarn {
 		qr.Alert = "warning"
 	}

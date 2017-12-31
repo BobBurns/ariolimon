@@ -115,5 +115,6 @@ func getThresholds() (error, []MetricQuery) {
 	if debug == 1 {
 		fmt.Println(hosts)
 	}
+
 	return nil, hosts
 }
