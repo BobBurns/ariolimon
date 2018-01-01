@@ -43,22 +43,17 @@ func main() {
 	defer f.Close()
 	log.SetOutput(f)
 
+	/* loop metric checks on seperate threads */
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go get_disk_loop(wg)
-
 	wg.Add(1)
 	go load_avg_loop(wg)
-
 	wg.Add(1)
 	go check_swap_loop(wg)
 
-	/* shouldn't
-	 * reach
-	 * until
-	 * interupt
-	 * */
+	/* shouldn't reach until interupt */
 	wg.Wait()
 
 }
@@ -346,18 +341,6 @@ func write_cpu_metric(la1, la2, la3 float64, md *cloudwatch.MetricDatum) {
 
 func check_swap_loop(wg sync.WaitGroup) {
 	defer wg.Done()
-
-	/* new
-	 * session
-	 * */
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-west-2")},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	svc := cloudwatch.New(sess)
 
 	dims := []*cloudwatch.Dimension{}
 	dim1 := &cloudwatch.Dimension{
