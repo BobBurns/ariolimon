@@ -38,10 +38,7 @@ func load_avg_loop(wg sync.WaitGroup) {
 		panic(err)
 	}
 
-	/* get
-	 * first
-	 * average
-	 * */
+	/* get first average */
 	fmt.Fscanf(file, "%s %f %f %f %f", &cpun, &a[0], &a[1], &a[2], &a[3])
 	file.Close()
 
@@ -72,14 +69,7 @@ func load_avg_loop(wg sync.WaitGroup) {
 			a[3] = d[3]
 			continue
 		}
-		/* every
-		 * 5
-		 * minutes
-		 * count
-		 * increases
-		 * by
-		 * 1
-		 * */
+
 		if count > 0 {
 
 			file, err = os.Open("/proc/stat")
@@ -116,12 +106,7 @@ func load_avg_loop(wg sync.WaitGroup) {
 
 			log.Printf("cpu load avg 1 min: %f\n", la1)
 
-			/* push
-			 * metric
-			 * every
-			 * 5
-			 * minutes
-			 * */
+			/* write all metrics every 5 minutes */
 			if i == 3 {
 				write_cpu_metric(la1, la2, la3, md)
 			}
