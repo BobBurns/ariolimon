@@ -33,9 +33,6 @@ Feel free to contact me for troubleshooting reburns@protonmail.com
 
 ## **TODO** ##
 
-
-Note if you are running < go 1.8 comment out line 41 in main.go
-
 Test with multiple aws accounts. Will need multiple profiles.
 
 ### **Update**
