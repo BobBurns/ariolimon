@@ -1,4 +1,4 @@
-### *mymetrics*
+### **mymetrics**
 
 Here are a few examples of creating custom metrics to publish on AWS CloudWatch.
 
@@ -7,6 +7,8 @@ Build and Run on your ec2 instance with proper AWS credentials.
 `go build`
 
 `./mymetrics`
+
+There will be a log file created cwtest.log to log the metrics locally.
 
 If you would like to monitor with Ariolimon add something like this to thresh.json
 
@@ -24,7 +26,8 @@ If you would like to monitor with Ariolimon add something like this to thresh.js
 "critical": "5:"},
 ```
 
-Note that you cannot use some characters like / in the name parameter
+Note that you cannot use some characters like / in the name parameter. The mux
+regexp is [a-zA-Z0-9_-]+
 
 Happy Monitoring!
 
