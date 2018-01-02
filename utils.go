@@ -3,20 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"html/template"
 	"io/ioutil"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 var t *template.Template
-var svc *cloudwatch.CloudWatch
-var svc_ec2 *ec2.EC2
 
-//var msess *mgo.Session
+// aws cloudwatch api
+var svc *cloudwatch.CloudWatch
 
 func init() {
 	// map functions for http templates
@@ -26,7 +25,7 @@ func init() {
 	}
 
 	// parse html template and threshold configuration file
-	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/home2.html", "html/templates/detail.html", "html/templates/custom.html", "html/templates/custom-img.html", "html/templates/login.html"))
+	t = template.Must(template.New("templates").Funcs(funcMap).ParseFiles("html/templates/crit.html", "html/templates/detail.html", "html/templates/warn.html", "html/templates/ok.html", "html/templates/home2.html"))
 
 	// init cloudwatch session
 	sess, err := session.NewSession(&aws.Config{
@@ -37,7 +36,6 @@ func init() {
 	}
 
 	svc = cloudwatch.New(sess)
-	svc_ec2 = ec2.New(sess)
 
 }
 
@@ -117,5 +115,6 @@ func getThresholds() (error, []MetricQuery) {
 	if debug == 1 {
 		fmt.Println(hosts)
 	}
+
 	return nil, hosts
 }
