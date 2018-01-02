@@ -2,7 +2,6 @@
 
 *This is branch nodb.  You do not need to run mongodb to run this version*
 
-=======
 A go web application to query Amazon web services Metrics and visually warn if configured thresholds are exceeded.
 
 
@@ -27,7 +26,6 @@ Clone this repo inside your $GOPATH.
 Change the thresh.json file to suit your needs.
 
 Note if you are running < go 1.8 comment out line 41 in main.go
-=======
 Add a configdb.json file in the main directory that has database authentication info
 
 ```

@@ -2,7 +2,11 @@
 
 Here are a few examples of creating custom metrics to publish on AWS CloudWatch.
 
-Run on your ec2 instance with proper AWS credentials.  
+Build and Run on your ec2 instance with proper AWS credentials.  
+
+`go build`
+
+`./mymetrics`
 
 If you would like to monitor with Ariolimon add something like this to thresh.json
 
