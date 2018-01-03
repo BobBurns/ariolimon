@@ -24,7 +24,8 @@ If you would like to monitor with Ariolimon add something like this to thresh.js
 "critical": "5:"},
 ```
 
-Note that you cannot use some characters like / in the name parameter
+Note that you cannot use some characters like / in the name parameter. The mux
+regexp is [a-zA-Z0-9_-]+
 
 Happy Monitoring!
 
